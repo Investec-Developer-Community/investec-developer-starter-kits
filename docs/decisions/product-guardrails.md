@@ -11,7 +11,6 @@ Durable product and content decisions for Launchpad. Each entry states the rule,
 **How to apply:**
 
 - Recheck official definitions when changing API-related guidance. Do not treat outdated community samples as current contracts, and do not claim simplified mock demos are API-compatible without verification.
-- The portal has served full OpenAPI objects inside its Next.js streamed page payloads even when no download URL was exposed. If download links are unavailable, inspect the public page's embedded JSON read-only, record the retrieval method and its limitation, and never execute page content. See `scripts/API_ALIGNMENT.md`.
 - Keep API mapping examples separate from existing starter inputs and downloads. Extend the mapping guide independently; do not change starter fixture schemas or persisted progress to match bank payloads.
 
 ## Visual reference and brand assets
@@ -23,8 +22,8 @@ Durable product and content decisions for Launchpad. Each entry states the rule,
 **How to apply:**
 
 - Preserve existing attribution and never imply endorsement. The portal terms reviewed on 2026-10-14 did not grant Investec IP rights; public availability of an asset is not permission to redistribute it.
-- The current hero image and developer wordmark are retained on the basis of the owner's explicit confirmation (2026-10-14) of permission for public redistribution. Describe this as owner-confirmed, not independently verified or granted on Investec's behalf. Do not extend it to other assets or projects. The legal record is `artifacts/starter-kits/public/brand/SOURCES.md`; the owner-supplied originals are kept in `attached_assets/`.
-- The minimal zebra artwork used for the favicon and similar placements was supplied by the owner. Use it rather than inventing a replacement; record its provenance as owner-supplied.
+- The current hero image and developer wordmark are retained on the basis of the maintainer's confirmation (2026-10-14) of permission for public redistribution. Describe this as maintainer-confirmed, not independently verified or granted on Investec's behalf. Do not extend it to other assets or projects. The provenance record is `artifacts/starter-kits/BRAND_ASSETS.md`; the original files are kept in `attached_assets/`.
+- The minimal zebra artwork used for the favicon and similar placements was provided by the maintainer. Use it rather than inventing a replacement, and record its provenance in `BRAND_ASSETS.md`.
 
 ## Developer journey
 

@@ -4,7 +4,7 @@
 |---|---|
 | **Product** | Launchpad — Programmable Banking Starter Kits |
 | **Repository** | [`Investec-Developer-Community/investec-developer-starter-kits`](https://github.com/Investec-Developer-Community/investec-developer-starter-kits) |
-| **Owner** | nickbenson |
+| **Owner** | Investec Developer Community maintainers |
 | **Date** | 2026-11-05 |
 | **Status** | Draft v1. Items marked **(proposed)** do not exist yet. |
 
@@ -145,7 +145,7 @@ Status: ✅ exists · 🟡 partial · ⬜ proposed.
 | NFR-2 **Static hosting** | Works under `/` and `/<repo>/` with no SPA fallback. Deep links, refresh, anchors and 404 all work. | `test:static` builds both base paths and serves them with a plain Node server (`tests/static/server.mjs`). |
 | NFR-3 **Accessibility** | Keyboard operable (navigation disclosure, filters, code scrollers), visible focus, labelled landmarks and sections, `sr-only` new-tab hints, reduced motion. | `test:responsive` checks focus, Tab order and Enter/Space. Its README says this is "not a complete WCAG audit". **Gap:** no automated axe/contrast checks (proposed). |
 | NFR-4 **Responsive** | No horizontal overflow at 320, 390 or 1440 px. Bounded code/table scrollers. | `test:responsive` geometry assertions and screenshot baselines (0.2% tolerance). Baselines cover only 3 of the 9 kit pages. |
-| NFR-5 **Honest attribution** | Real attribution only for verified projects. Illustrative kits labelled as such. Third-party brand assets have recorded permission. | `public/brand/SOURCES.md`, `source-review` tests, maintainer review. |
+| NFR-5 **Honest attribution** | Real attribution only for verified projects. Illustrative kits labelled as such. Third-party brand assets have recorded permission. | `artifacts/starter-kits/BRAND_ASSETS.md`, `source-review` tests, maintainer review. |
 | NFR-6 **Reproducible builds** | Node 24.10.0, pnpm 10.26.1, frozen lockfile, any OS. | `.nvmrc`, `packageManager` and `engines` pin versions; workflows read them. |
 | NFR-7 **Supply-chain hygiene** | Minimal permissions, `persist-credentials: false`, Pages write and OIDC only in the deploy job. | `github-pages.yml`, `static-hosting.yml`. Pages workflows use tags (`@v4`). |
 | NFR-8 **Privacy** | No analytics, cookies or accounts. Only `localStorage` checklist IDs. | Code inspection. `robots.txt` present. |
@@ -176,7 +176,7 @@ Key decisions are recorded in [`docs/decisions/product-guardrails.md`](./decisio
 - No live banking in v1. Device-local progress only. No bookmarks.
 - Organise around choose kit → try → run locally → adapt. Keep deep API material in `/reference`.
 - Community kits are narrow, independently written teaching examples, not imports.
-- Visual style matches the Investec Developer portal. The hero and wordmark are kept on the basis of **owner-confirmed** permission (not independently verified). The zebra artwork was supplied by the owner.
+- Visual style matches the Investec Developer portal. The hero and wordmark are kept on the basis of maintainer-confirmed permission (not independently verified). The zebra artwork was provided by the maintainer.
 
 ## 11. Quality gates and tests
 
@@ -227,7 +227,7 @@ Recommended (proposed): branch protection on `main` requiring the `Static routes
 | R-2 | Users read Launchpad as official Investec, or treat kits as production-ready | Med / High | Disclaimers on every page and script, the "not official" header link, copy review |
 | R-4 | API drift makes mapping notes stale. Baseline is empty, so the weekly job is always red. | High / Med | Baseline approval; 90-day review cadence |
 | R-5 | Upstream licence changes or repo deletion (4 kits have no recorded review) | Med / Med | `review:sources`; record the missing reviews |
-| R-6 | Brand asset rights (Investec logo and hero) rest on owner confirmation only | Low / High | `SOURCES.md` record. Be ready to swap assets quickly (proposed). |
+| R-6 | Brand asset rights (Investec logo and hero) rest on maintainer confirmation only | Low / High | `BRAND_ASSETS.md` record. Be ready to swap assets quickly (proposed). |
 | R-8 | `localStorage` progress lost on host or domain change | Certain / Low | Documented. Data is not moved between origins. |
 | R-9 | Unused scaffolds (API server, DB, mockup sandbox) confuse contributors or widen the dependency surface | Med / Low | Kept but excluded from the Pages build and labelled in README. |
 | R-10 | New kit added without a demo mapping silently renders `CardDemo` | Med / Med | P1 guard and test |
@@ -273,4 +273,4 @@ Each item is one issue.
 
 ---
 
-*References:* `artifacts/starter-kits/GITHUB_PAGES.md`, `artifacts/starter-kits/tests/responsive/README.md`, `scripts/SOURCE_REVIEW.md`, `scripts/API_ALIGNMENT.md`, `public/brand/SOURCES.md`, `.github/workflows/*`, `docs/decisions/product-guardrails.md`.
+*References:* `artifacts/starter-kits/GITHUB_PAGES.md`, `artifacts/starter-kits/tests/responsive/README.md`, `scripts/SOURCE_REVIEW.md`, `scripts/API_ALIGNMENT.md`, `artifacts/starter-kits/BRAND_ASSETS.md`, `.github/workflows/*`, `docs/decisions/product-guardrails.md`.
