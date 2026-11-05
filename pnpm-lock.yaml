@@ -99,8 +99,8 @@ importers:
         specifier: ^5.3.0
         version: 5.3.0
       pino:
-        specifier: ^9.14.0
-        version: 9.14.0
+        specifier: ^10.4.0
+        version: 10.4.0
       pino-http:
         specifier: ^11.0.0
         version: 11.0.0
@@ -122,7 +122,7 @@ importers:
         version: 0.28.2
       esbuild-plugin-pino:
         specifier: ^2.3.3
-        version: 2.3.3(esbuild@0.28.2)(pino-pretty@13.2.0)(pino@9.14.0)(thread-stream@4.2.1)
+        version: 2.3.3(esbuild@0.28.2)(pino-pretty@13.2.0)(pino@10.4.0)(thread-stream@4.2.1)
       pino-pretty:
         specifier: ^13.2.0
         version: 13.2.0
@@ -3038,9 +3038,6 @@ packages:
     resolution: {integrity: sha512-qcJu88Q2IWqJsDD529JKMdwGm/dvInW4HvQnRwiH9JtihJvzGOscDtHE3x1pBKeUOTysQ8kVmLnJ2kJu7yhcGA==}
     engines: {node: '>=12'}
 
-  pino-abstract-transport@2.0.0:
-    resolution: {integrity: sha512-F63x5tizV6WCh4R6RHyi2Ml+M70DNRXt/+HANowMflpgGFMAym/VKm6G7ZOQRjqN7XbGxK1Lg9t6ZrtzOaivMw==}
-
   pino-abstract-transport@3.0.0:
     resolution: {integrity: sha512-wlfUczU+n7Hy/Ha5j9a/gZNy7We5+cXp8YL+X+PG8S0KXxw7n/JXA3c46Y0zQznIJ83URJiwy7Lh56WLokNuxg==}
 
@@ -3056,10 +3053,6 @@ packages:
 
   pino@10.4.0:
     resolution: {integrity: sha512-bk1ZMTwG/Vymx+zPoa28MhNzucFvXJWp3csrSuxuHPSMeUettaCoQ5Jvg07mtC4JGNpcfTwz41oVCnNgBK9+vA==}
-    hasBin: true
-
-  pino@9.14.0:
-    resolution: {integrity: sha512-8OEwKp5juEvb/MjpIc4hjqfgCNysrS94RIOMXYvpYCdm/jglrKEiAYmiumbmGhCvs+IcInsphYDFwqrjr7398w==}
     hasBin: true
 
   playwright-core@1.64.1:
@@ -3228,10 +3221,6 @@ packages:
     resolution: {integrity: sha512-Kko+Y5XQ6fM+Ce3dq3m9YGxnacYZYl9cA1wZjaF3Vbry2L3i1qVg8+CAgNPsXRArPMUMCaOR7oa9Nqntc43JKA==}
     engines: {node: '>= 20.19.0'}
 
-  real-require@0.2.0:
-    resolution: {integrity: sha512-57frrGM/OCTLqLOAh0mhVA9VBMHd+9U7Zb2THMGdBUoZVOtGbJzjxsYGDJ3A9AYYCP4hn6y1TVbaOfzWtm5GFg==}
-    engines: {node: '>= 12.13.0'}
-
   real-require@1.0.0:
     resolution: {integrity: sha512-P4nbQYQfePJxRSmY+v/KINxVucm4NF3p3s7pJveMTtom52FR4YGltUQLB8idDXwDDWW+eYrWDFbuzUnjoWHF7g==}
 
@@ -3387,9 +3376,6 @@ packages:
   tapable@2.3.3:
     resolution: {integrity: sha512-uxc/zpqFg6x7C8vOE7lh6Lbda8eEL9zmVm/PLeTPBRhh1xCgdWaQ+J1CUieGpIfm2HdtsUpRv+HshiasBMcc6A==}
     engines: {node: '>=6'}
-
-  thread-stream@3.2.0:
-    resolution: {integrity: sha512-zLBvqpwr4Esa0kRjcrzGU6zL25lePWaCLMx0RQFrmteozIfeNdaMLpG5U7PeHzvlFkAWaRKA9/KVW4F60iB+qw==}
 
   thread-stream@4.2.1:
     resolution: {integrity: sha512-Stg6edJXC/6/xqGwSXwFokrUhChJ18amEjpKH89WrQQ0oVFDF+pUUcTpiwWhFUrE89Vf16FBOlwhaw+lescxMQ==}
@@ -5273,10 +5259,10 @@ snapshots:
     dependencies:
       es-errors: 1.3.0
 
-  esbuild-plugin-pino@2.3.3(esbuild@0.28.2)(pino-pretty@13.2.0)(pino@9.14.0)(thread-stream@4.2.1):
+  esbuild-plugin-pino@2.3.3(esbuild@0.28.2)(pino-pretty@13.2.0)(pino@10.4.0)(thread-stream@4.2.1):
     dependencies:
       esbuild: 0.28.2
-      pino: 9.14.0
+      pino: 10.4.0
     optionalDependencies:
       pino-pretty: 13.2.0
       thread-stream: 4.2.1
@@ -5771,10 +5757,6 @@ snapshots:
 
   picomatch@4.0.7: {}
 
-  pino-abstract-transport@2.0.0:
-    dependencies:
-      split2: 4.2.0
-
   pino-abstract-transport@3.0.0:
     dependencies:
       split2: 4.2.0
@@ -5817,20 +5799,6 @@ snapshots:
       safe-stable-stringify: 2.5.0
       sonic-boom: 4.2.1
       thread-stream: 4.2.1
-
-  pino@9.14.0:
-    dependencies:
-      '@pinojs/redact': 0.4.0
-      atomic-sleep: 1.0.0
-      on-exit-leak-free: 2.1.2
-      pino-abstract-transport: 2.0.0
-      pino-std-serializers: 7.1.0
-      process-warning: 5.1.1
-      quick-format-unescaped: 4.0.4
-      real-require: 0.2.0
-      safe-stable-stringify: 2.5.0
-      sonic-boom: 4.2.1
-      thread-stream: 3.2.0
 
   playwright-core@1.64.1: {}
 
@@ -5982,8 +5950,6 @@ snapshots:
   react@19.3.1: {}
 
   readdirp@5.1.1: {}
-
-  real-require@0.2.0: {}
 
   real-require@1.0.0: {}
 
@@ -6158,10 +6124,6 @@ snapshots:
   tailwindcss@4.3.4: {}
 
   tapable@2.3.3: {}
-
-  thread-stream@3.2.0:
-    dependencies:
-      real-require: 0.2.0
 
   thread-stream@4.2.1:
     dependencies:
