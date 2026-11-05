@@ -7,7 +7,7 @@ Asset paths below are relative to `artifacts/starter-kits/public/`.
 ## Investec reference assets
 
 Retrieved 2026-10-14 from the public Investec Developer Portal at
-https://developer.investec.com/ as Launchpad's visual reference.
+https://developer.investec.com/ for Launchpad's visual alignment.
 
 | Local file | Source |
 | --- | --- |
@@ -21,7 +21,7 @@ Investec intellectual-property rights. Do not imply Investec endorsement.
 
 ### Permission basis
 
-On 2026-10-14 the Launchpad maintainer confirmed permission to publicly
+On 2026-10-14 the Launchpad maintainer explicitly confirmed permission to publicly
 redistribute the Investec hero image and developer wordmark. Both assets are
 retained on that basis.
 
@@ -35,8 +35,8 @@ byte for byte:
 
 This records the maintainer's confirmation. It is not an independently verified
 licence or a grant of permission on behalf of Investec. No separate permission
-document, usage conditions or additional attribution requirements apply. The
-confirmation covers these two assets for Launchpad's public distribution only;
+document, usage conditions or additional attribution requirements were supplied.
+The confirmation covers these two assets for Launchpad's public distribution;
 do not infer approval for other assets or projects, or endorsement.
 
 Launchpad remains an independent community prototype. The on-page attribution
@@ -44,10 +44,10 @@ and no-bank-connection/mock-only notices must remain visible.
 
 ## Zebra mark
 
-On 2026-11-04 the Launchpad maintainer provided
-`attached_assets/Zebra-minimal-black-transp_1793807519854.png` for Launchpad's
-favicon and other placements within this design system. This records permission
-for this project only, not independently verified ownership, a transferable
+On 2026-11-04 the Launchpad maintainer supplied
+`attached_assets/Zebra-minimal-black-transp_1793807519854.png` and explicitly
+offered it for Launchpad's favicon and other placements within this design system.
+This records maintainer-supplied permission for this project, not independently verified ownership, a transferable
 licence or official Investec endorsement.
 
 The original is an indexed 568 × 568 PNG with transparency (transparent corner,

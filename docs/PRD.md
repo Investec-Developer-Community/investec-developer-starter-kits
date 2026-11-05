@@ -176,7 +176,7 @@ Key decisions are recorded in [`docs/decisions/product-guardrails.md`](./decisio
 - No live banking in v1. Device-local progress only. No bookmarks.
 - Organise around choose kit → try → run locally → adapt. Keep deep API material in `/reference`.
 - Community kits are narrow, independently written teaching examples, not imports.
-- Visual style matches the Investec Developer portal. The hero and wordmark are kept on the basis of maintainer-confirmed permission (not independently verified). The zebra artwork was provided by the maintainer.
+- Visual style matches the Investec Developer portal. The hero and wordmark are kept on the basis of **maintainer-confirmed** permission (not independently verified). The zebra artwork was supplied by the maintainer.
 
 ## 11. Quality gates and tests
 
