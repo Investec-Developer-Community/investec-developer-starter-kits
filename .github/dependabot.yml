@@ -15,6 +15,16 @@ updates:
       - dependencies
     commit-message:
       prefix: "deps"
+    # Held on current majors: these releases need code changes before upgrading.
+    ignore:
+      - dependency-name: "@vitejs/plugin-react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "recharts"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-resizable-panels"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "pino"
+        update-types: ["version-update:semver-major"]
     groups:
       npm-minor-and-patch:
         update-types:
