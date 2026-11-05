@@ -68,3 +68,5 @@ overrides:
   esbuild: "0.28.2"
   # orval pins js-yaml to an exact version older than the CVE fix (>=4.3.2)
   js-yaml: '4.3.2'
+  # @tailwindcss/typography pins postcss-selector-parser to 6.0.10 (CVE fixed in 6.1.5)
+  postcss-selector-parser: '^6.1.5'
