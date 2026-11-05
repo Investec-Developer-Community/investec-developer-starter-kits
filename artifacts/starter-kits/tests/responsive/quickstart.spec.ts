@@ -1,0 +1,33 @@
+import { test, expect } from '@playwright/test';
+import { readFile } from 'node:fs/promises';
+import { ready, noHorizontalOverflow } from './helpers';
+
+test('quickstart links, starter bundle and manual continuation work', async ({ page }, info) => {
+  test.skip(info.project.name !== 'mobile-390', 'Functional journey runs once; layout matrix is separate');
+  await ready(page, '/');
+  await page.locator('a[href="/kits/spend-explorer#run"]').click();
+  await expect(page).toHaveURL(/spend-explorer#run$/);
+  await expect.poll(() => page.locator('#run').evaluate(el => el.getBoundingClientRect().top)).toBeLessThan(200);
+  await noHorizontalOverflow(page);
+  const downloadEvent = page.waitForEvent('download');
+  await page.getByTestId('button-download-bundle').click();
+  const download = await downloadEvent;
+  expect(download.suggestedFilename()).toBe('spend-explorer-starter.zip');
+  const bytes = await readFile((await download.path())!);
+  expect(bytes.readUInt32LE(0)).toBe(0x04034b50);
+  expect(bytes.toString()).toContain('README.md');
+  expect(bytes.toString()).toContain('node spend-explorer.mjs ./spend-explorer-mock-data.json');
+  await page.locator('[data-testid^="checkbox-step-"]').first().click();
+  await page.reload();
+  await expect(page.getByTestId('text-progress')).toContainText('1/');
+  await ready(page, '/');
+  const continuation = page.getByTestId('link-continue-spend-explorer');
+  await continuation.click();
+  await expect(page).toHaveURL(/spend-explorer#run$/);
+  await expect.poll(() => page.locator('#run').evaluate(el => el.getBoundingClientRect().top)).toBeLessThan(200);
+  await page.locator('a[href="/reference#account-mapping"]').click();
+  await expect(page).toHaveURL(/reference#account-mapping$/);
+  await expect.poll(() => page.locator('#account-mapping').evaluate(el => el.getBoundingClientRect().top)).toBeLessThan(210);
+  await page.getByTestId('button-check-mappings').click();
+  await expect(page.getByTestId('mapping-check-results')).toContainText('PASS');
+});

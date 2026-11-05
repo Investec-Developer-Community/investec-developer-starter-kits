@@ -1,0 +1,67 @@
+# See https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
+
+# compiled output
+dist
+tmp
+out-tsc
+*.tsbuildinfo
+.expo
+.expo-shared
+
+# dependencies
+node_modules
+
+# IDEs and editors
+/.idea
+.idea/
+*.swp
+*.swo
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+
+# misc
+/.sass-cache
+/connect.lock
+/coverage
+/libpeerconnection.log
+npm-debug.log
+yarn-error.log
+testem.log
+/typings
+
+# System Files
+.DS_Store
+Thumbs.db
+
+.cursor/rules/nx-rules.mdc
+.github/instructions/nx.instructions.md
+
+# Tool caches and machine-local state (.config/ holds Chromium crash dumps etc.)
+.cache/
+.local/
+.config/
+.conversation/
+.pnpm-store/
+/generated-artifacts/
+
+# Test outputs (Playwright)
+playwright-report/
+test-results/
+blob-report/
+playwright/.cache/
+
+# Environment files — never commit credentials
+.env
+.env.*
+!.env.example
+
+# attached_assets/ is intentionally committed (owner-supplied brand originals).
+
+# Editor settings
+.vscode/
+.mcp.json
+.gitattributes

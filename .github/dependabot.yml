@@ -1,0 +1,41 @@
+version: 2
+updates:
+  # pnpm workspace: Dependabot reads pnpm-lock.yaml and pnpm-workspace.yaml from the root.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: Africa/Johannesburg
+    # Mirrors pnpm's minimumReleaseAge (1440 minutes) so updates avoid brand-new releases.
+    cooldown:
+      default-days: 1
+    open-pull-requests-limit: 10
+    labels:
+      - dependencies
+    commit-message:
+      prefix: "deps"
+    groups:
+      npm-minor-and-patch:
+        update-types:
+          - minor
+          - patch
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: Africa/Johannesburg
+    cooldown:
+      default-days: 1
+    labels:
+      - dependencies
+      - github-actions
+    commit-message:
+      prefix: "ci"
+    groups:
+      actions-minor-and-patch:
+        update-types:
+          - minor
+          - patch

@@ -1,0 +1,2 @@
+/* Keep sticky navigation from obscuring titles in section-only baselines. */
+header.sticky { visibility: hidden !important; }

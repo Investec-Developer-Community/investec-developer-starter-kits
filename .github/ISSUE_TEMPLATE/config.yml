@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/Investec-Developer-Community/investec-developer-starter-kits/security/advisories/new
+    about: Report vulnerabilities privately. Do not open a public issue for security problems.
+  - name: Investec Developer Community Projects
+    url: https://github.com/Investec-Developer-Community/Community-Projects
+    about: Browse community projects. Questions about those projects belong with their maintainers.

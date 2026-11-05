@@ -1,0 +1,60 @@
+name: Starter kits GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    permissions:
+      contents: read
+      pages: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - name: Read Pages configuration
+        id: pages
+        uses: actions/configure-pages@v5
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile --filter @workspace/starter-kits...
+      - name: Check social metadata and image delivery
+        run: pnpm --filter @workspace/starter-kits test:social
+      - name: Build only the static website
+        env:
+          BASE_PATH: ${{ steps.pages.outputs.base_path }}/
+          PUBLIC_SITE_URL: ${{ steps.pages.outputs.base_url }}
+        run: pnpm --filter @workspace/starter-kits build
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: artifacts/starter-kits/dist/public
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy website
+        id: deployment
+        uses: actions/deploy-pages@v5

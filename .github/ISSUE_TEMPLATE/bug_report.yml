@@ -1,0 +1,66 @@
+name: Bug report
+description: Report something on the Launchpad site or in a kit that is not working
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug. Do not paste real banking credentials, account numbers or personal data here. Report security issues privately instead; see SECURITY.md.
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened?
+      description: Describe the bug and what you expected to happen instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: The page or kit, and the exact steps to trigger the bug.
+      placeholder: |
+        1. Go to ...
+        2. Click ...
+        3. See error
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Website (pages, navigation, layout)
+        - Kit demo
+        - Kit download (ZIP or script)
+        - Manual checklist or saved progress
+        - Build or deployment
+        - Documentation
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: url
+    attributes:
+      label: Page URL
+      description: The URL where you saw the problem, if it is on the live site.
+      placeholder: https://investec-developer-community.github.io/investec-developer-starter-kits/
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and version
+      placeholder: Chrome 130 on macOS 15
+  - type: textarea
+    id: logs
+    attributes:
+      label: Console output or error message
+      description: Paste any browser console or terminal output. Remove anything sensitive.
+      render: shell
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues and this is not a duplicate.
+          required: true
+        - label: I have not included real credentials, account numbers or personal data.
+          required: true

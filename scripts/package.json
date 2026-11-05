@@ -1,0 +1,20 @@
+{
+  "name": "@workspace/scripts",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:learning-kits": "tsx --test ../artifacts/starter-kits/src/maintenance/learning-kits.test.ts",
+    "test:mappings": "tsx --test ../artifacts/starter-kits/src/maintenance/api-mappings.test.ts",
+    "review:api": "tsx ../artifacts/starter-kits/src/maintenance/review-official-api.ts",
+    "test:api-review": "tsx --test ../artifacts/starter-kits/src/maintenance/official-contract-review.test.ts",
+    "review:sources": "tsx ../artifacts/starter-kits/src/maintenance/review-sources.ts",
+    "test:sources": "tsx --test ../artifacts/starter-kits/src/maintenance/source-review.test.ts",
+    "hello": "tsx ./src/hello.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "tsx": "catalog:"
+  }
+}

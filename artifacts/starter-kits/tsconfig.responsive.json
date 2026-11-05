@@ -1,0 +1,6 @@
+{
+  "extends": "./tsconfig.json",
+  "include": ["playwright.config.ts", "tests/responsive/**/*.ts"],
+  "exclude": ["node_modules"],
+  "references": []
+}

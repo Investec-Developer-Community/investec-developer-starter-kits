@@ -1,0 +1,132 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      update_snapshots:
+        description: Regenerate responsive screenshot baselines on Ubuntu Chromium
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  typecheck:
+    name: Workspace typecheck
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Typecheck workspace
+        run: pnpm run typecheck
+
+  unit-tests:
+    name: Unit and maintenance tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Check offline teaching calculations and extracted starters
+        run: pnpm --filter @workspace/scripts test:learning-kits
+      - name: Check API mappings
+        run: pnpm --filter @workspace/scripts test:mappings
+      - name: Verify source review checks
+        run: pnpm test:sources
+      - name: Verify official API review checks
+        run: pnpm test:api-review
+      - name: Verify CI API review adapter
+        run: node --test scripts/ci-review-api.test.mjs
+      - name: Check social metadata and image delivery (push + manual)
+        if: ${{ github.event_name != 'pull_request' }}
+        run: pnpm --filter @workspace/starter-kits test:social
+
+  build:
+    name: Starter-kits build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    needs:
+      - typecheck
+      - unit-tests
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build starter-kits static site
+        run: pnpm --filter @workspace/starter-kits build
+
+  responsive:
+    name: Responsive and keyboard regressions
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Install Chromium and Linux dependencies
+        run: pnpm --filter @workspace/starter-kits exec playwright install --with-deps chromium
+      - name: Run responsive tests
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.update_snapshots }}" = "true" ]; then
+            pnpm --filter @workspace/starter-kits test:responsive:update
+          else
+            pnpm --filter @workspace/starter-kits test:responsive
+          fi
+      - name: Upload responsive report on failure
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: responsive-report-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            generated-artifacts/responsive/report
+            generated-artifacts/responsive/results
+          retention-days: 14
+          if-no-files-found: warn
+      - name: Upload refreshed responsive baselines
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.update_snapshots == true }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: responsive-baselines-ubuntu-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/starter-kits/tests/responsive/baselines
+          retention-days: 14
+          if-no-files-found: error
