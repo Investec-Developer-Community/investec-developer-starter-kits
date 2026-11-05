@@ -43,7 +43,7 @@ catalog:
   clsx: ^2.1.1
   drizzle-orm: ^0.45.4
   framer-motion: ^12.23.24
-  lucide-react: ^0.545.0
+  lucide-react: ^1.68.0
   # Exact pin kept from the original scaffold; upgrade only after verifying the app
   react: 19.3.1
   react-dom: 19.3.1
