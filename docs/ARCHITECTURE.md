@@ -15,7 +15,7 @@ Launchpad is an independent community prototype, not an official Investec servic
 |---|---|---|---|
 | `@workspace/starter-kits` | `artifacts/starter-kits` | **The product.** Kit catalogue with in-browser demos, client-side ZIP/script downloads and `localStorage` checklist progress. Custom Vite plugins in `build/` emit static route entry pages, `404.html`, `.nojekyll` and OG/Twitter metadata. | **Yes** (`dist/public`) |
 | `@workspace/scripts` | `scripts` | Maintainer CLIs and `node:test` suites (run via `tsx` against `artifacts/starter-kits/src/maintenance/`), CI adapter `ci-review-api.mjs`, `official-api-baseline.json`. | No |
-| `@workspace/api-server` | `artifacts/api-server` | Express 5 scaffold with a single `GET /api/healthz` route, bundled with esbuild. `PORT` defaults to 3001. | No |
+| `@workspace/api-server` | `artifacts/api-server` | Express 5 scaffold with a single `GET /api/healthz` route, bundled with esbuild. `PORT` defaults to 3001; overrides must resolve to an integer from 1–65535. Invalid values stop startup without echoing the supplied configuration. | No |
 | `@workspace/mockup-sandbox` | `artifacts/mockup-sandbox` | Vite design-preview sandbox with a shadcn component gallery. `PORT`/`BASE_PATH` default to `5173` and `/`. | No |
 | `@workspace/api-spec` | `lib/api-spec` | `openapi.yaml` (healthz only) and the Orval config that generates `lib/api-zod` and `lib/api-client-react`. | No |
 | `@workspace/api-zod` | `lib/api-zod` | Generated Zod schemas. | No |
@@ -93,6 +93,7 @@ Run from the repository root.
 | Upstream source review (network, read-only) | `pnpm review:sources` — see [`scripts/SOURCE_REVIEW.md`](../scripts/SOURCE_REVIEW.md) |
 | Official OpenAPI drift check (network, never approves baselines) | `pnpm review:api` — see [`scripts/API_ALIGNMENT.md`](../scripts/API_ALIGNMENT.md) |
 | API server (port 3001) | `pnpm --filter @workspace/api-server dev` |
+| API server startup and health tests | `pnpm --filter @workspace/api-server test` |
 | Regenerate API hooks and Zod schemas | `pnpm --filter @workspace/api-spec run codegen` |
 | DB push | `DATABASE_URL=… pnpm --filter @workspace/db push` |
 
