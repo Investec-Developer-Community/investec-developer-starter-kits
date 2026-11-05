@@ -30,7 +30,7 @@ jobs:
           cache: pnpm
       - name: Read Pages configuration
         id: pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile --filter @workspace/starter-kits...
       - name: Check social metadata and image delivery
