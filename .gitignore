@@ -37,9 +37,6 @@ testem.log
 .DS_Store
 Thumbs.db
 
-.cursor/rules/nx-rules.mdc
-.github/instructions/nx.instructions.md
-
 # Tool caches and machine-local state (.config/ holds Chromium crash dumps etc.)
 .cache/
 .local/
@@ -59,9 +56,19 @@ playwright/.cache/
 .env.*
 !.env.example
 
-# attached_assets/ is intentionally committed (owner-supplied brand originals).
+# attached_assets/ is intentionally committed (brand asset originals; see artifacts/starter-kits/BRAND_ASSETS.md).
 
 # Editor settings
 .vscode/
 .mcp.json
 .gitattributes
+
+# Local AI assistant and agent tooling
+.squad/
+.squad-workstream
+.copilot/
+.github/agents/
+.github/skills/
+.github/copilot-instructions.md
+.github/workflows/squad-*.yml
+.github/workflows/sync-squad-labels.yml
