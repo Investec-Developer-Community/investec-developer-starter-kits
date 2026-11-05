@@ -5,8 +5,8 @@ const rawPort = process.env["PORT"] ?? "3001";
 
 const port = Number(rawPort);
 
-if (Number.isNaN(port) || port <= 0) {
-  throw new Error(`Invalid PORT value: "${rawPort}"`);
+if (!Number.isInteger(port) || port <= 0 || port > 65535) {
+  throw new Error("PORT must be an integer between 1 and 65535");
 }
 
 app.listen(port, (err) => {

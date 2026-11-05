@@ -57,6 +57,8 @@ jobs:
         run: pnpm --filter @workspace/scripts test:learning-kits
       - name: Check API mappings
         run: pnpm --filter @workspace/scripts test:mappings
+      - name: Check API server startup
+        run: pnpm --filter @workspace/api-server test
       - name: Verify source review checks
         run: pnpm test:sources
       - name: Verify official API review checks
