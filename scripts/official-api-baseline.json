@@ -7,7 +7,11 @@
       "retrievedAt": "2026-11-05T16:34:43.042Z",
       "method": "embedded-json",
       "sha256": "89deaa2d2f126c9a956d4b4a0f82b17023e4cf4158253c6102e8cc81a555efad",
-      "approval": null,
+      "approval": {
+        "reviewedBy": "programmable-banking-community",
+        "reviewedOn": "2026-11-05",
+        "sha256": "89deaa2d2f126c9a956d4b4a0f82b17023e4cf4158253c6102e8cc81a555efad"
+      },
       "contract": {
         "openapi": "3.0.0",
         "servers": [
@@ -3712,7 +3716,11 @@
       "retrievedAt": "2026-11-05T16:34:43.042Z",
       "method": "embedded-json",
       "sha256": "7030969426b80f6299764a47a5ad22f4190b4710d1f62d7ea6cb986722cadf59",
-      "approval": null,
+      "approval": {
+        "reviewedBy": "programmable-banking-community",
+        "reviewedOn": "2026-11-05",
+        "sha256": "7030969426b80f6299764a47a5ad22f4190b4710d1f62d7ea6cb986722cadf59"
+      },
       "contract": {
         "openapi": "3.0.0",
         "servers": [
@@ -6078,7 +6086,11 @@
       "retrievedAt": "2026-11-05T16:34:43.042Z",
       "method": "embedded-json",
       "sha256": "fb04a7107b738e9738523413480db6e262ce94b00340c033d6d74f68d6c81c89",
-      "approval": null,
+      "approval": {
+        "reviewedBy": "programmable-banking-community",
+        "reviewedOn": "2026-11-05",
+        "sha256": "fb04a7107b738e9738523413480db6e262ce94b00340c033d6d74f68d6c81c89"
+      },
       "contract": {
         "openapi": "3.0.0",
         "servers": [
