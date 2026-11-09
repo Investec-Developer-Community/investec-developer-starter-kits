@@ -4,7 +4,7 @@ import { previewPing } from '@/data/payment-pinger-engine.mjs';
 import { buildSheetRows, csvCell, rowsToCsv } from '@/data/card-to-sheet-sync-engine.mjs';
 import { simulateSwipe } from '@/data/swipe-n-save-engine.mjs';
 import { pingerTxns, sheetTxns, swipeTxns } from '@/data/community-kits';
-import { downloadText } from '@/lib/local';
+import { useTextDownload } from '@/hooks/use-text-download';
 import { zar } from '@/data/kits';
 import { cn } from '@/lib/utils';
 
@@ -71,6 +71,7 @@ export function PingerDemo() {
 export function SheetDemo() {
   const [txns, setTxns] = useState<Record<string, unknown>[]>(sheetTxns);
   const [d, setD] = useState({ date: '2025-04-05', merchant: '+cmd|calc', amount: '42', status: 'approved' });
+  const downloadText = useTextDownload();
   const { rows, skipped } = buildSheetRows(txns);
   const add = () => setTxns([...txns, { date: d.date, merchant: d.merchant, category: 'Added', amount: num(d.amount), currency: 'ZAR', status: d.status }]);
   return (

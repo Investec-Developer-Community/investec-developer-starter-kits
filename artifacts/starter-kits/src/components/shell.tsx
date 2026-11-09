@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Link, useLocation } from 'wouter';
 import { BookOpen, Compass, LayoutGrid, Menu, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -13,6 +13,7 @@ const nav = [
 export function Shell({ children }: { children: ReactNode }) {
   const [loc] = useLocation();
   const [open, setOpen] = useState(false);
+  useEffect(() => setOpen(false), [loc]);
   const isActive = (href: string) => (href === '/' ? loc === '/' || loc.startsWith('/kits') : loc.startsWith(href));
   return (
     <div className="flex-1 flex flex-col bg-background">
@@ -21,7 +22,7 @@ export function Shell({ children }: { children: ReactNode }) {
           Skip to main content
         </a>
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center gap-4">
-          <Link href="/" className="flex items-center gap-3 min-w-0" data-testid="link-home" aria-label="Launchpad home">
+          <Link href="/" onClick={() => setOpen(false)} className="flex items-center gap-3 min-w-0" data-testid="link-home" aria-label="Launchpad home">
             <img src={`${import.meta.env.BASE_URL}brand/launchpad-zebra.png`} width={36} height={36} alt="" aria-hidden="true" className="w-9 h-9 object-contain shrink-0" data-testid="image-header-zebra" />
             <span className="flex flex-col leading-tight min-w-0">
               <span className="font-semibold text-[17px] text-foreground">Launchpad</span>

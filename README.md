@@ -18,7 +18,7 @@ Launchpad is a mock-first inspiration and learning showcase for South African de
 - **Mock-first boilerplate:** explore API and card-code patterns with sample data, then follow links to official developer resources for future steps.
 - **Honest attribution:** community-inspired kits credit their original authors and record licence status and source-review dates.
 - **Documented mechanics:** kits explain how their sample data relates to documented Investec API and card-code mechanics; samples do not establish a live integration.
-- **Manual checklists:** progress is saved in your browser only.
+- **Manual checklists:** progress is saved in your browser when storage is available. If it is blocked, the site warns that changes are temporary and offers a retry.
 
 ## Repository structure
 
@@ -90,6 +90,7 @@ Repository owners must set **Settings → Pages → Source** to **GitHub Actions
 
 ## Documentation
 
+- [Changelog](./CHANGELOG.md)
 - [Architecture map](./docs/ARCHITECTURE.md)
 - [Product guardrails](./docs/decisions/product-guardrails.md)
 - [Source review process](./scripts/SOURCE_REVIEW.md)

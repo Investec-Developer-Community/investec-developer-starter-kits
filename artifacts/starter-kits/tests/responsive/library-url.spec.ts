@@ -58,3 +58,22 @@ test('direct links accept valid values and normalize invalid filters to defaults
     q: 'spend',
   });
 });
+
+test('back and forward restore filters for history entries on the same library route', async ({ page }) => {
+  await ready(page, '/?campaign=community&q=spend#kits');
+  const search = page.getByRole('searchbox', { name: 'Search kits' });
+  await expect(search).toHaveValue('spend');
+  await page.evaluate(() => history.pushState(null, '', '/?campaign=community&q=guard#kits'));
+
+  await page.goBack();
+  await expect(search).toHaveValue('spend');
+  await page.goForward();
+  await expect(search).toHaveValue('guard');
+  await expect(page.getByTestId('card-kit-card-guard')).toBeVisible();
+  await expect(page).toHaveURL(/campaign=community&q=guard#kits$/);
+
+  await page.goBack();
+  await expect(search).toHaveValue('spend');
+  await expect(page.getByTestId('card-kit-spend-explorer')).toBeVisible();
+  await expect(page).toHaveURL(/campaign=community&q=spend#kits$/);
+});

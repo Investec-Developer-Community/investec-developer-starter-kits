@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useReducer, useState } from 'react';
 import { ArrowRight, Check, X } from 'lucide-react';
 import { computeTransferPreview, decidePurchase, interestDefaultPending, interestFixture, merchantCategories, spendTransactions, zar } from '@/data/kits';
 import { filterSpendRows, postedDebitTotalsMinor } from '@/data/spend-explorer-engine.mjs';
+import { decimalToMinor } from '@/data/sample-helpers.mjs';
 import { cn } from '@/lib/utils';
 
 const inputCls = 'w-full bg-background border border-input rounded-xl px-3 py-2 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-ring';
@@ -10,8 +11,8 @@ function NumField({ label, value, onChange, error, id }: { label: string; value:
   return (
     <label className="block text-sm">
       <span className="font-medium">{label}</span>
-      <input inputMode="decimal" value={value} onChange={(e) => onChange(e.target.value)} className={cn(inputCls, 'mt-1', error && 'border-destructive')} data-testid={`input-${id}`} />
-      {error && <span className="text-xs text-destructive mt-1 block" data-testid={`error-${id}`}>{error}</span>}
+      <input inputMode="decimal" value={value} onChange={(e) => onChange(e.target.value)} aria-invalid={!!error} aria-describedby={error ? `error-${id}` : undefined} className={cn(inputCls, 'mt-1', error && 'border-destructive')} data-testid={`input-${id}`} />
+      {error && <span id={`error-${id}`} className="text-xs text-destructive mt-1 block" data-testid={`error-${id}`}>{error}</span>}
     </label>
   );
 }
@@ -22,6 +23,18 @@ function parse(v: string): { n?: number; err?: string } {
   if (!Number.isFinite(n)) return { err: 'Enter a number' };
   if (n < 0) return { err: 'Cannot be negative' };
   return { n };
+}
+
+function parseTransferAmount(value: string): { n?: number; err?: string } {
+  const parsed = parse(value);
+  if (parsed.n === undefined) return parsed;
+  try {
+    decimalToMinor(parsed.n);
+  } catch (error) {
+    if (error instanceof RangeError) return { err: 'Amount is outside the supported range' };
+    throw error;
+  }
+  return parsed;
 }
 
 function Acct({ name, before, after }: { name: string; before: number; after: number }) {
@@ -43,7 +56,7 @@ export function InterestDemo() {
   const [pend, setPend] = useState(String(interestDefaultPending));
   const [res, setRes] = useState(String(interestFixture.reserve));
   const loan = interestFixture.balances['demo-loan'].data.currentBalance;
-  const b = parse(bal), p = parse(pend), r = parse(res);
+  const b = parseTransferAmount(bal), p = parseTransferAmount(pend), r = parseTransferAmount(res);
   const ok = b.n !== undefined && p.n !== undefined && r.n !== undefined;
   const preview = ok ? computeTransferPreview(b.n!, p.n!, r.n!, loan) : undefined;
   const amt = preview?.transferable ?? 0;
@@ -120,30 +133,53 @@ export function SpendDemo() {
   );
 }
 
+type CardSimulation =
+  | { status: 'idle' }
+  | { status: 'stale' }
+  | { status: 'decided'; decision: ReturnType<typeof decidePurchase>; revision: number };
+
+type CardSimulationAction =
+  | { type: 'inputs-changed' }
+  | { type: 'simulate'; decision: ReturnType<typeof decidePurchase> };
+
+function cardSimulationReducer(state: CardSimulation, action: CardSimulationAction): CardSimulation {
+  switch (action.type) {
+    case 'inputs-changed':
+      return state.status === 'idle' ? state : { status: 'stale' };
+    case 'simulate':
+      return {
+        status: 'decided',
+        decision: action.decision,
+        revision: state.status === 'decided' ? state.revision + 1 : 1,
+      };
+  }
+}
+
 export function CardDemo() {
   const [limit, setLimit] = useState('1500');
   const [blocked, setBlocked] = useState<string[]>(['Gambling']);
   const [amount, setAmount] = useState('899');
   const [mcat, setMcat] = useState('Online retail');
-  const [result, setResult] = useState<{ approved: boolean; reason: string; n: number } | null>(null);
+  const [simulation, dispatch] = useReducer(cardSimulationReducer, { status: 'idle' });
   const l = parse(limit);
+  const invalidate = () => dispatch({ type: 'inputs-changed' });
   const simulate = () => {
     if (l.n === undefined) return;
-    const d = decidePurchase({ amount: Number(amount), merchantCategory: mcat }, { spendLimit: l.n, blockedCategories: blocked });
-    setResult({ ...d, n: (result?.n ?? 0) + 1 });
+    const decision = decidePurchase({ amount: Number(amount), merchantCategory: mcat }, { spendLimit: l.n, blockedCategories: blocked });
+    dispatch({ type: 'simulate', decision });
   };
   return (
     <div className="space-y-4">
       <div className="grid sm:grid-cols-2 gap-4">
         <div className="space-y-3">
           <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Rules</div>
-          <NumField id="limit" label="Spend limit (R)" value={limit} onChange={setLimit} error={l.err} />
+          <NumField id="limit" label="Spend limit (R)" value={limit} onChange={(value) => { setLimit(value); invalidate(); }} error={l.err} />
           <div className="text-sm font-medium">Restricted merchant categories</div>
           <div className="flex flex-wrap gap-1.5">
             {merchantCategories.map((c) => {
               const on = blocked.includes(c);
               return (
-                <button key={c} type="button" onClick={() => setBlocked(on ? blocked.filter((x) => x !== c) : [...blocked, c])}
+                <button key={c} type="button" aria-pressed={on} onClick={() => { setBlocked(current => current.includes(c) ? current.filter(x => x !== c) : [...current, c]); invalidate(); }}
                   className={cn('press text-xs px-2 py-1 rounded-xl border font-mono', on ? 'bg-destructive text-destructive-foreground border-destructive' : 'hover:bg-secondary')}
                   data-testid={`toggle-block-${c}`}>{c}</button>
               );
@@ -152,9 +188,9 @@ export function CardDemo() {
         </div>
         <div className="space-y-3">
           <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Mock purchase</div>
-          <NumField id="amount" label="Amount (R)" value={amount} onChange={setAmount} />
+          <NumField id="amount" label="Amount (R)" value={amount} onChange={(value) => { setAmount(value); invalidate(); }} />
           <label className="block text-sm"><span className="font-medium">Merchant category</span>
-            <select value={mcat} onChange={(e) => setMcat(e.target.value)} className={cn(inputCls, 'mt-1')} data-testid="select-merchant">
+            <select value={mcat} onChange={(e) => { setMcat(e.target.value); invalidate(); }} className={cn(inputCls, 'mt-1')} data-testid="select-merchant">
               {merchantCategories.map((c) => <option key={c}>{c}</option>)}
             </select>
           </label>
@@ -163,17 +199,20 @@ export function CardDemo() {
           </button>
         </div>
       </div>
-      {result && (
-        <div key={result.n} className={cn('rise flex items-center gap-3 rounded-xl p-4 border-2', result.approved ? 'border-primary bg-primary/5' : 'border-destructive bg-destructive/5')} data-testid="status-decision">
-          <span className={cn('grid place-items-center w-9 h-9 rounded-full', result.approved ? 'bg-primary text-primary-foreground' : 'bg-destructive text-destructive-foreground')}>
-            {result.approved ? <Check className="w-5 h-5" /> : <X className="w-5 h-5" />}
-          </span>
-          <div>
-            <div className="font-semibold font-mono">{result.approved ? 'APPROVE' : 'DECLINE'}</div>
-            <div className="text-sm text-muted-foreground">{result.reason}. Simulated; no card involved.</div>
+      <div role="status" aria-live="polite" aria-atomic="true" className={simulation.status === 'idle' ? 'sr-only' : undefined}>
+        {simulation.status === 'stale' && <p className="text-sm text-muted-foreground" data-testid="status-decision-stale">Rules or purchase changed. Run the simulation again.</p>}
+        {simulation.status === 'decided' && (
+          <div key={simulation.revision} className={cn('rise flex items-center gap-3 rounded-xl p-4 border-2', simulation.decision.approved ? 'border-primary bg-primary/5' : 'border-destructive bg-destructive/5')} data-testid="status-decision">
+            <span className={cn('grid place-items-center w-9 h-9 rounded-full', simulation.decision.approved ? 'bg-primary text-primary-foreground' : 'bg-destructive text-destructive-foreground')}>
+              {simulation.decision.approved ? <Check className="w-5 h-5" /> : <X className="w-5 h-5" />}
+            </span>
+            <div>
+              <div className="font-semibold font-mono">{simulation.decision.approved ? 'APPROVE' : 'DECLINE'}</div>
+              <div className="text-sm text-muted-foreground">{simulation.decision.reason}. Simulated; no card involved.</div>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

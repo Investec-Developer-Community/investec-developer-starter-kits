@@ -3,9 +3,9 @@ import { TakeItFurther } from '@/components/take-it-further';
 import { CommandBlock } from '@/components/command-block';
 import { Download, FileCode, FileJson, Package } from 'lucide-react';
 import { getKit } from '@/data/kits';
-import { downloadText } from '@/lib/local';
 import { downloadStarterBundle, starterInstructions } from '@/lib/starter-bundle';
 import { useToast } from '@/hooks/use-toast';
+import { useTextDownload } from '@/hooks/use-text-download';
 import { LocalTroubleshooting } from '@/components/local-troubleshooting';
 import { OfficialApiGuidance } from '@/components/official-api-guidance';
 
@@ -18,12 +18,12 @@ const rules = [
 export default function GettingStarted() {
   const kit = getKit('spend-explorer');
   const { toast } = useToast();
+  const downloadText = useTextDownload();
   const run = kit ? starterInstructions(kit) : { command: '', expected: '' };
   const one = (which: 'script' | 'data') => {
     if (!kit) return;
     if (which === 'script') downloadText(kit.scriptFile, kit.script, 'text/javascript');
     else downloadText(kit.dataFile, JSON.stringify(kit.mockData, null, 2), 'application/json');
-    toast({ title: 'Download started', description: which === 'script' ? kit.scriptFile : kit.dataFile });
   };
   const zip = async () => {
     if (!kit) return;
