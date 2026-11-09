@@ -1,10 +1,47 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { resolveObjectURL } from 'node:buffer';
 import { readFile, mkdir, writeFile, rm } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
 import { join, resolve } from 'node:path';
 import { kits } from '../data/kits.ts';
-import { createStarterZip, starterFiles } from '../lib/starter-bundle.ts';
+import { createStarterZip, downloadStarterBundle, starterFiles } from '../lib/starter-bundle.ts';
+
+test('starter downloads use stable slug filenames and contain the exact generated ZIP', async () => {
+  const previousDocument = Object.getOwnPropertyDescriptor(globalThis, 'document');
+  const clicked: { filename: string; url: string }[] = [];
+  let removed = false;
+  const fakeDocument = {
+    body: { appendChild() {} },
+    createElement(tag: string) {
+      assert.equal(tag, 'a');
+      return {
+        href: '',
+        download: '',
+        click() { clicked.push({ filename: this.download, url: this.href }); },
+        remove() { removed = true; },
+      };
+    },
+  };
+  Object.defineProperty(globalThis, 'document', { configurable: true, value: fakeDocument });
+  try {
+    for (const kit of kits) {
+      clicked.length = 0;
+      removed = false;
+      await downloadStarterBundle(kit);
+      assert.equal(clicked.length, 1, `${kit.slug} starts a download`);
+      assert.equal(clicked[0].filename, `${kit.slug}-starter.zip`);
+      assert.equal(removed, true, `${kit.slug} removes its temporary link`);
+      const blob = resolveObjectURL(clicked[0].url);
+      assert.ok(blob, `${kit.slug} creates a Blob URL`);
+      assert.equal(blob.type, 'application/zip');
+      assert.deepEqual(new Uint8Array(await blob.arrayBuffer()), createStarterZip(kit));
+    }
+  } finally {
+    if (previousDocument) Object.defineProperty(globalThis, 'document', previousDocument);
+    else Reflect.deleteProperty(globalThis, 'document');
+  }
+});
 
 function zipFiles(zip: Uint8Array) {
   const view = new DataView(zip.buffer, zip.byteOffset, zip.byteLength);

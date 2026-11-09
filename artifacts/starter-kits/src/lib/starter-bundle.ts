@@ -1,6 +1,7 @@
 import type { Kit } from '../data/kits.ts';
 import { sampleHelpersSource } from '../data/sample-helpers-source.ts';
 import { apiReadmeGuidance } from '../data/official-api.ts';
+import { downloadBlob } from './download.ts';
 
 export function starterInstructions(kit: Kit) {
   const step = kit.setup.find(s => s.code?.startsWith(`node ${kit.scriptFile} `));
@@ -77,10 +78,5 @@ export function createStarterZip(kit: Kit): Uint8Array<ArrayBuffer> {
 }
 
 export async function downloadStarterBundle(kit: Kit): Promise<void> {
-  const url = URL.createObjectURL(new Blob([createStarterZip(kit)], { type: 'application/zip' }));
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `${kit.slug}-starter.zip`;
-  document.body.appendChild(link);
-  try { link.click(); } finally { link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000); }
+  downloadBlob(`${kit.slug}-starter.zip`, new Blob([createStarterZip(kit)], { type: 'application/zip' }));
 }

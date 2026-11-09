@@ -4,22 +4,25 @@ import { CommandBlock } from '@/components/command-block';
 import { Link, useParams } from 'wouter';
 import { ArrowLeft, Check, Download, ExternalLink, FileJson, FileCode, Package, Play, RotateCcw, Terminal, TriangleAlert } from 'lucide-react';
 import { getKit } from '@/data/kits';
-import { downloadText, useLocalStore } from '@/lib/local';
+import { useLocalStore } from '@/lib/local';
 import { DemoFrame } from '@/components/demo-frame';
 import { downloadStarterBundle, starterInstructions } from '@/lib/starter-bundle';
 import { useToast } from '@/hooks/use-toast';
+import { useTextDownload } from '@/hooks/use-text-download';
 import { cn } from '@/lib/utils';
 import { LocalTroubleshooting } from '@/components/local-troubleshooting';
 import { TakeItFurther } from '@/components/take-it-further';
 import { kitIssueUrl } from '@/lib/community-links';
 import { OfficialApiGuidance } from '@/components/official-api-guidance';
 import { CardCodeSampleGuide } from '@/components/card-code-sample-guide';
+import { ChecklistStorageNotice } from '@/components/checklist-storage-notice';
 
 export default function KitDetail() {
   const { slug = '' } = useParams<{ slug: string }>();
   const kit = getKit(slug);
-  const { progress, toggleStep, resetProgress } = useLocalStore();
+  const { progress, persistence, toggleStep, resetProgress, retryStorage } = useLocalStore();
   const { toast } = useToast();
+  const downloadText = useTextDownload();
   if (!kit) {
     return (
       <div className="max-w-xl mx-auto px-4 py-24 text-center" data-testid="kit-not-found">
@@ -35,7 +38,6 @@ export default function KitDetail() {
   const dl = (which: 'script' | 'data') => {
     if (which === 'script') downloadText(kit.scriptFile, kit.script, 'text/javascript');
     else downloadText(kit.dataFile, JSON.stringify(kit.mockData, null, 2), 'application/json');
-    toast({ title: 'Download started', description: which === 'script' ? kit.scriptFile : kit.dataFile });
   };
   const zip = async () => {
     try { await downloadStarterBundle(kit); toast({ title: 'Download started', description: `${kit.slug} starter bundle (.zip)` }); }
@@ -200,6 +202,7 @@ export default function KitDetail() {
               <span className="font-mono text-xs" data-testid="text-progress">{count}/{kit.checklist.length}</span>
             </div>
             <div className="h-1 bg-secondary rounded overflow-hidden my-3"><div className="h-full bg-primary origin-left transition-transform duration-300" style={{ transform: `scaleX(${count / kit.checklist.length})` }} /></div>
+            <ChecklistStorageNotice persistence={persistence} onRetry={retryStorage} />
             <ul className="space-y-1">
               {kit.checklist.map((c) => {
                 const on = done.includes(c.id);
@@ -214,7 +217,7 @@ export default function KitDetail() {
               })}
             </ul>
             {count > 0 && <button type="button" onClick={() => resetProgress(kit.slug)} className="mt-2 text-xs text-muted-foreground hover:text-foreground flex items-center gap-1" data-testid="button-reset-progress"><RotateCcw className="w-3 h-3" />Reset progress</button>}
-            <p className="text-[11px] text-muted-foreground mt-3">Checklist ticks are manual; nothing is completed automatically. Stored in this browser only, not synced or sent anywhere. Clearing site data removes progress.</p>
+            <p className="text-[11px] text-muted-foreground mt-3">Checklist ticks are manual; nothing is completed automatically. Stored in this browser only, not synced to other devices or sent anywhere. Clearing site data removes progress.</p>
           </div>
         </aside>
       </div>

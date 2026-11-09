@@ -7,9 +7,9 @@ pnpm --filter @workspace/starter-kits test:responsive
 ```
 
 The suite builds and serves the real frontend on port 4179, without the API
-server or development overlays. Each test gets fresh browser storage. Nothing
-downloads files or changes saved progress. Coverage runs at 320×800, 390×844 and
-1440×900 in Chromium:
+server or development overlays. Each test gets isolated browser storage and
+downloads are confined to the test environment. Coverage runs at 320×800,
+390×844 and 1440×900 in Chromium:
 
 - library, all three kit pages, mapping panels and onboarding;
 - desktop navigation and the mobile disclosure's names, expanded state, tab
@@ -17,8 +17,11 @@ downloads files or changes saved progress. Coverage runs at 320×800, 390×844 a
 - real Tab navigation and visible focus on links, search, sort, filters,
   disclosure summaries and scrollable code;
 - full-document element and text geometry, including content hidden by the
-  global `overflow-x:clip`; intentionally bounded code/table scrollers are allowed;
+  global `overflow-x:clip`; intentionally bounded code/table scrollers and
+  fully clipped, one-pixel screen-reader announcements are allowed;
 - keyboard horizontal scrolling within API examples;
+- checklist storage failures, recovery and same-browser tab updates;
+- history restoration, simulation invalidation and download failure/retry;
 - reviewed screenshot baselines for the shell, open mobile menu, page headers,
   mapping guide, onboarding and focus state.
 

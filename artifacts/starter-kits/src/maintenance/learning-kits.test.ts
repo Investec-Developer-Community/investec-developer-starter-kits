@@ -170,13 +170,11 @@ test('kit display names describe the idea while stable routes and progress ident
   assert.deepEqual(cardGuard.checklist.map(step => step.id), ['download', 'run', 'limit', 'block', 'limits']);
   assert.doesNotMatch(cardGuard.script, /Mock Card Rules/);
 
-  const [router, starterBundle, localStore] = await Promise.all([
+  const [router, localStore] = await Promise.all([
     readFile(new URL('../App.tsx', import.meta.url), 'utf8'),
-    readFile(new URL('../lib/starter-bundle.ts', import.meta.url), 'utf8'),
     readFile(new URL('../lib/local.ts', import.meta.url), 'utf8'),
   ]);
   assert.match(router, /<Route path="\/kits\/:slug" component=\{KitDetail\} \/>/);
-  assert.match(starterBundle, /link\.download = `\$\{kit\.slug\}-starter\.zip`;/);
   assert.match(localStore, /const KEY = 'launchpad\.v1';/);
 });
 test('account fixtures use only documented bank fields and major-unit amounts', async () => {

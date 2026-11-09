@@ -77,11 +77,37 @@ flowchart LR
 1. The browser loads `index.html`, or a pre-generated route entry such as `kits/<slug>/index.html`, under `BASE_PATH`.
 2. `wouter` resolves routes from `import.meta.env.BASE_URL`. Kit data, fixtures and engines are bundled at build time.
 3. Demos compute in the browser through the engines.
-4. **Downloads** are built in the browser. `src/lib/starter-bundle.ts` writes the ZIP, and `downloadText` in `src/lib/local.ts` creates single-file downloads. Both use Blob URLs; no request is made.
-5. **Checklist progress** is stored in `localStorage` under `launchpad.v1` (per origin). `src/lib/local.ts` tolerates missing, malformed or corrupted values.
+4. **Downloads** are built in the browser. `src/lib/starter-bundle.ts` writes the ZIP, and `downloadText` in `src/lib/local.ts` creates single-file downloads. `src/lib/download.ts` cleans up their Blob URLs and temporary links; no request is made.
+5. **Checklist progress** is stored in `localStorage` under `launchpad.v1` (per origin). `src/lib/checklist-store.ts` validates legacy values and keeps unsaved changes in memory if storage is unavailable. The UI warns that temporary changes will be lost on reload and offers a retry.
 6. The website makes no runtime network calls, so it needs no proxy, CORS setup or runtime configuration.
 
 Downloaded kits are separate local sample programs. They run offline on fictional data and are not live bank clients. Tests use fixtures or local fakes only and never call live services.
+
+### 6.1 Application-owned state inventory
+
+This inventory covers state owned by the shipped website and downloaded sample runners, not unused UI primitives or internal React, Radix and browser implementation state. Form values and results that can be derived directly from those values do not need a separate state-machine library. Use a typed transition model when a result has its own lifecycle, and keep persistence and failure transitions in one shared store.
+
+| Workflow and owner | States, transitions and lifetime |
+|---|---|
+| Routes and recovery — `App.tsx`, `components/error-boundary.tsx` | Location selects a route, redirect or not-found page; a render error moves the relevant boundary to its fallback. Retry or a changed route clears the routed error. Hash navigation scrolls to the target. |
+| Mobile navigation — `components/shell.tsx` | Closed ↔ open; choosing a mobile link, using the home link or changing routes closes it. State is local to the shell. |
+| Library — `pages/library.tsx`, `lib/library-query.ts` | Search, category, language, difficulty and sort determine the list and its empty state. Edits replace the current URL entry; reload and browser back/forward restore it. Unrelated query parameters and the hash are retained. Reset clears filters but preserves sort. |
+| Checklist — `lib/checklist-store.ts`, `lib/local.ts` | Each step is checked or unchecked. Persistence is `available`, `invalid` (malformed stored data, with usable entries retained), or `unavailable` (changes kept in memory). Toggle and reset attempt a write; retry reapplies pending intent to the latest readable data. Same-origin tabs receive storage events; changes are not synced to other devices. Simultaneous writes are still subject to localStorage's last-writer-wins behavior. |
+| Command copy — `components/command-block.tsx` | `idle` → `copying` → `success` or `error`; errors expose manual copy, and a later attempt can succeed. A changed command resets feedback. |
+| Downloads and notifications — `lib/download.ts`, `hooks/use-text-download.ts`, `hooks/use-toast.ts` | A file or ZIP request ends in “Download started” or an error; failures can be retried, and temporary links and Blob URLs are cleaned up. The toast reducer adds, dismisses and removes transient notifications, with a one-toast limit. |
+| Reference checks and disclosures — `components/api-mapping-guide.tsx`, `components/local-troubleshooting.tsx` | Mapping and scenario checks move independently from not run to fixture-specific pass/fail results. Native disclosure elements are opened and closed by the browser. |
+| Interest Maximiser — `components/demos.tsx` | Balance, pending and reserve edits produce either field errors or a live transfer preview; unsupported amounts are rejected without leaving the demo. |
+| Spend Explorer — `components/demos.tsx` | Category and search edits derive matching fixture rows, an empty state and posted-only totals. |
+| Card Guard — `components/demos.tsx` | `idle` → `decided` on simulation; changing any rule or purchase input moves the decision to `stale` until simulated again. Approve/decline remains a fictional local result. |
+| Payment Pinger — `components/community-demos.tsx` | Presets and field edits derive validation errors or message/email previews; no message is sent. |
+| Card-To-Sheet-Sync — `components/community-demos.tsx` | Fixture rows → added rows or reset; derived rows may be skipped, and nonempty results can be exported as a local CSV. |
+| Swipe 'n Save — `components/community-demos.tsx` | Percentage edits derive validation errors or a local savings preview. |
+| Cashflow Runway — `components/learning-demos.tsx` | Input edits derive validation errors, engine errors or baseline/scenario forecasts; reset restores the fixture. The daily-results disclosure is browser-owned. |
+| Recurring Payment Detective — `components/learning-demos.tsx` | Amount and pending-row edits derive validation errors, engine errors or recurring-payment groups; reset restores the fixture. |
+| Who Paid — `components/learning-demos.tsx` | Amount and reference edits derive validation errors, engine errors or reconciliation results; reset restores the fixture. |
+| Downloaded sample runners — `data/kits.ts`, `data/community-kits.ts`, `data/learning-kits.ts` | Local input is read, validated and computed before output or an error/exit status. The Card Guard teaching harness runs `beforeTransaction`, then selects `afterTransaction` for `true`, `afterDecline` for `false`, or an unknown outcome for a non-boolean return; missing hooks and timeouts are reported. This is not a live platform lifecycle. |
+
+Transient demo inputs reset when their component unmounts. Only checklist progress is stored; the library filters live in the URL. Fixture labels such as pending and posted are data values, not evidence of an inferred banking transaction lifecycle.
 
 ## 7. Build tooling
 
@@ -113,14 +139,14 @@ All offline Node suites run through `@workspace/scripts` `test:offline`: `check:
 | Category | Files | Runner |
 |---|---|---|
 | Architecture invariants (no browser) | `src/maintenance/architecture-invariants.test.ts` — no server, database or HTTP-client dependency; every kit fixture is fictional and every starter runs with the network blocked; the shared fetch guard really blocks | `test:unit` |
-| Catalogue and registry | `demo-mapping.test.ts`, `library-query.test.ts`, `kits-mock-only.test.ts` | `test:unit` |
+| Catalogue, registry and checklist persistence | `demo-mapping.test.ts`, `library-query.test.ts`, `checklist-store.test.ts`, `kits-mock-only.test.ts` | `test:unit` |
 | Engines and downloads | `engine-sources.test.mjs`, `kit-engine-parity.test.ts`, `starter-bundle.test.ts`, `spend-explorer.test.ts`, `swipe-percentage.test.ts`, `card-code.test.mjs`, `learning-kits.test.ts` | `test:unit` |
 | API alignment and guidance | `api-mappings.test.ts`, `official-api-note.test.ts`, `official-contract-review.test.ts`, `source-review.test.ts` | `test:unit` |
 | Credential and copy safety | `credential-safety.test.mjs` (source, script and ZIP scans), `mock-first-copy.test.mjs` | `test:unit` |
 | CI adapter | `scripts/ci-review-api.test.mjs` | `test:unit` |
 | Social metadata | `build/social-preview.test.mjs`, `build/social-preview-build.test.mjs` | `test:social` |
 | Static hosting (Playwright, built site at `/` and `/starter-kits/`, plain file server, no SPA fallback) | `tests/static/hosting.spec.ts`, `invariants.spec.ts`, `trust-contracts.spec.ts`, `learning-kits.spec.ts`, `branding.spec.ts`, `a11y-meta.spec.ts`; helper `site-meta.ts` reads metadata from `index.html` | `test:static` |
-| Responsive, keyboard and accessibility (Playwright, 320, 390 and 1440 px) | `tests/responsive/launchpad.spec.ts` (screenshot baselines), `kit-containment.spec.ts` (every kit page, before and after operating its demo), `a11y.spec.ts` (axe WCAG 2.2 A/AA rule tags on every route plus two 404 routes, at 320, 390 and 1440 px, with and without reduced motion), `progress.spec.ts`, `library-url.spec.ts`, `quickstart.spec.ts`, `command-copy.spec.ts` | `test:responsive` |
+| Responsive, keyboard and accessibility (Playwright, 320, 390 and 1440 px) | `tests/responsive/launchpad.spec.ts` (screenshot baselines), `kit-containment.spec.ts` (every kit page, before and after operating its demo), `a11y.spec.ts` (axe WCAG 2.2 A/AA rule tags on every route plus two 404 routes, at 320, 390 and 1440 px, with and without reduced motion), `state-accessibility.spec.ts` (failure states), `progress.spec.ts`, `library-url.spec.ts`, `state-transitions.spec.ts`, `download-state.spec.ts`, `quickstart.spec.ts`, `command-copy.spec.ts` | `test:responsive` |
 
 The automated axe checks pass. They do not establish full WCAG conformance; manual screen-reader checks are tracked separately.
 

@@ -3,6 +3,7 @@ import { Search, X } from 'lucide-react';
 import { Link } from 'wouter';
 import { kits } from '@/data/kits';
 import { KitCard } from '@/components/kit-card';
+import { ChecklistStorageNotice } from '@/components/checklist-storage-notice';
 import { cn } from '@/lib/utils';
 import { useLocalStore } from '@/lib/local';
 import { buildLibraryUrl, defaultLibraryFilters, readLibraryFilters } from '@/lib/library-query';
@@ -27,7 +28,7 @@ function Chips({ label, options, value, onChange }: { label: string; options: st
 const beginner = kits.find((k) => k.slug === 'spend-explorer');
 
 export default function Library() {
-  const { progress } = useLocalStore();
+  const { progress, persistence, retryStorage } = useLocalStore();
   const started = kits.map((kit) => ({
     kit, done: kit.checklist.filter((step) => (progress[kit.slug] ?? []).includes(step.id)).length,
   })).filter(({ kit, done }) => done > 0 && done < kit.checklist.length);
@@ -39,6 +40,11 @@ export default function Library() {
     const url = buildLibraryUrl(window.location.pathname, window.location.search, window.location.hash, filters);
     window.history.replaceState(window.history.state, '', url);
   }, [filters]);
+  useEffect(() => {
+    const restoreFilters = () => setFilters(readLibraryFilters(window.location.search, categories, languages));
+    window.addEventListener('popstate', restoreFilters);
+    return () => window.removeEventListener('popstate', restoreFilters);
+  }, []);
   const list = useMemo(() => {
     const s = q.trim().toLowerCase();
     return kits
@@ -80,11 +86,16 @@ export default function Library() {
           )}
         </div>
       </section>
+      {persistence !== 'available' && (
+        <section className="max-w-6xl mx-auto px-4 pt-6">
+          <ChecklistStorageNotice persistence={persistence} onRetry={retryStorage} />
+        </section>
+      )}
       {started.length > 0 && (
         <section aria-labelledby="resume-heading" className="max-w-6xl mx-auto px-4 pt-6" data-testid="section-resume">
           <div className="border rounded-xl bg-card p-4">
             <h2 id="resume-heading" className="font-semibold">Continue where you left off</h2>
-            <p className="mt-1 text-xs text-muted-foreground">Manual checklist progress, stored in this browser only. Not synced; clearing site data removes it.</p>
+            <p className="mt-1 text-xs text-muted-foreground">Manual checklist progress, stored in this browser only. Not synced to other devices; clearing site data removes it.</p>
             <ul className="mt-3 space-y-2">
               {started.map(({ kit, done }) => (
                 <li key={kit.slug}>

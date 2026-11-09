@@ -19,18 +19,29 @@ export async function noHorizontalOverflow(page: Page) {
   const violations = await page.evaluate(() => {
     const width = document.documentElement.clientWidth;
     const failures: string[] = [];
+    const isScreenReaderOnly = (el: HTMLElement) => {
+      const style = getComputedStyle(el);
+      if (style.position !== 'absolute' || style.overflow !== 'hidden' ||
+          style.clip !== 'rect(0px, 0px, 0px, 0px)') return false;
+      const rect = el.getBoundingClientRect();
+      return rect.width <= 1 && rect.height <= 1;
+    };
     if (document.documentElement.scrollWidth > width + 1) failures.push('document scroll width');
     for (const el of document.querySelectorAll<HTMLElement>('body *')) {
       if (!el.getClientRects().length || ['SCRIPT', 'STYLE', 'SVG', 'PATH'].includes(el.tagName.toUpperCase())) continue;
+      if (isScreenReaderOnly(el)) continue;
       // Intentional, bounded code/table scrollers may have wide descendants.
       // Do not exempt overflow:hidden/clip: those can conceal real regressions.
       let parent = el.parentElement;
       let inScroller = false;
+      let inScreenReaderOnly = false;
       while (parent && parent !== document.body) {
+        if (isScreenReaderOnly(parent)) { inScreenReaderOnly = true; break; }
         if (['auto', 'scroll'].includes(getComputedStyle(parent).overflowX) &&
             parent.scrollWidth > parent.clientWidth) { inScroller = true; break; }
         parent = parent.parentElement;
       }
+      if (inScreenReaderOnly) continue;
       const rect = el.getBoundingClientRect();
       if (!inScroller && (rect.left < -1 || rect.right > width + 1)) {
         failures.push(`${el.tagName} ${el.dataset.testid || el.textContent?.trim().slice(0, 65)} (${Math.round(rect.left)}..${Math.round(rect.right)})`);

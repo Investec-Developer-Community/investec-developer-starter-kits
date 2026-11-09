@@ -114,3 +114,109 @@ test('old Saved URLs redirect to the library without losing progress', async ({ 
   await page.reload();
   await expect(page.getByTestId('link-continue-spend-explorer')).toContainText('1/5');
 });
+
+test('unavailable storage keeps multiple changes in memory and explains the risk', async ({ page }) => {
+  await page.addInitScript(() => {
+    const getItem = Storage.prototype.getItem;
+    const setItem = Storage.prototype.setItem;
+    Storage.prototype.getItem = function (this: Storage, key) {
+      if (key === 'launchpad.v1') throw new DOMException('Denied', 'SecurityError');
+      return getItem.call(this, key);
+    };
+    Storage.prototype.setItem = function (this: Storage, key, value) {
+      if (key === 'launchpad.v1') throw new DOMException('Denied', 'SecurityError');
+      return setItem.call(this, key, value);
+    };
+  });
+  await ready(page, '/kits/spend-explorer');
+  await expect(page.getByTestId('storage-warning')).toContainText('lost');
+  await page.getByTestId('checkbox-step-download').click();
+  await page.getByTestId('checkbox-step-run').click();
+  await expect(page.getByTestId('text-progress')).toHaveText('2/5');
+  await noHorizontalOverflow(page);
+  await page.getByTestId('link-back').click();
+  await expect(page.getByTestId('storage-warning')).toContainText('lost');
+  await expect(page.getByTestId('link-continue-spend-explorer')).toContainText('2/5');
+  await noHorizontalOverflow(page);
+  await page.getByTestId('link-continue-spend-explorer').click();
+  await expect(page.getByTestId('text-progress')).toHaveText('2/5');
+});
+
+test('retry merges unsaved changes with the latest browser storage', async ({ page }) => {
+  await page.addInitScript(() => {
+    const setItem = Storage.prototype.setItem;
+    setItem.call(localStorage, 'launchpad.v1', JSON.stringify({
+      progress: { 'spend-explorer': ['download'], 'other-kit': ['keep'] },
+    }));
+    let blocked = true;
+    Storage.prototype.setItem = function (this: Storage, key, value) {
+      if (key === 'launchpad.v1' && blocked) throw new DOMException('Full', 'QuotaExceededError');
+      return setItem.call(this, key, value);
+    };
+    window.addEventListener('test:allow-checklist-storage', () => { blocked = false; });
+  });
+  await ready(page, '/kits/spend-explorer');
+  await page.getByTestId('checkbox-step-run').click();
+  await page.getByTestId('checkbox-step-filter').click();
+  await expect(page.getByTestId('text-progress')).toHaveText('3/5');
+  await expect(page.getByTestId('storage-warning')).toContainText('lost');
+
+  const other = await page.context().newPage();
+  await ready(other, '/');
+  await other.evaluate(() => localStorage.setItem('launchpad.v1', JSON.stringify({
+    progress: { 'spend-explorer': ['download', 'extend'], 'other-kit': ['keep', 'new'] },
+  })));
+  await expect(page.getByTestId('checkbox-step-extend')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByTestId('text-progress')).toHaveText('4/5');
+
+  await page.evaluate(() => window.dispatchEvent(new Event('test:allow-checklist-storage')));
+  await page.getByRole('button', { name: 'Retry browser storage' }).click();
+  await expect(page.getByTestId('storage-warning')).toHaveCount(0);
+  const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('launchpad.v1')!));
+  expect(stored.progress['spend-explorer']).toEqual(['download', 'extend', 'run', 'filter']);
+  expect(stored.progress['other-kit']).toEqual(['keep', 'new']);
+  await expect(other.getByTestId('link-continue-spend-explorer')).toContainText('4/5');
+  await other.close();
+});
+
+test('checklist changes and resets update other tabs using the same browser storage', async ({ page }) => {
+  await ready(page, '/kits/spend-explorer');
+  const other = await page.context().newPage();
+  await ready(other, '/kits/spend-explorer');
+  await page.getByTestId('checkbox-step-download').click();
+  await expect(other.getByTestId('text-progress')).toHaveText('1/5');
+  await other.getByTestId('checkbox-step-run').click();
+  await expect(page.getByTestId('text-progress')).toHaveText('2/5');
+  await other.getByTestId('button-reset-progress').click();
+  await expect(page.getByTestId('text-progress')).toHaveText('0/5');
+  await expect(page.getByTestId('checkbox-step-download')).toHaveAttribute('aria-pressed', 'false');
+  await page.getByTestId('checkbox-step-download').click();
+  await expect(other.getByTestId('text-progress')).toHaveText('1/5');
+  await other.evaluate(() => localStorage.clear());
+  await expect(page.getByTestId('text-progress')).toHaveText('0/5');
+  await other.close();
+});
+
+test('progress refreshes after visiting a page without a checklist subscriber', async ({ page }) => {
+  await ready(page, '/kits/spend-explorer');
+  await page.getByTestId('checkbox-step-download').click();
+  await page.getByTestId('link-back').click();
+  await page.getByTestId('link-hero-getting-started').click();
+
+  const other = await page.context().newPage();
+  await ready(other, '/kits/spend-explorer');
+  await other.getByTestId('checkbox-step-run').click();
+  await page.getByTestId('link-all-kits').click();
+  await expect(page.getByTestId('link-continue-spend-explorer')).toContainText('2/5');
+  await other.close();
+});
+
+test('unreadable saved progress is reported and repaired on the next checklist change', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('launchpad.v1', '{'));
+  await ready(page, '/kits/spend-explorer');
+  await expect(page.getByTestId('storage-warning')).toContainText('could not be read');
+  await page.getByTestId('checkbox-step-download').click();
+  await expect(page.getByTestId('storage-warning')).toHaveCount(0);
+  const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('launchpad.v1')!));
+  expect(stored.progress['spend-explorer']).toEqual(['download']);
+});
