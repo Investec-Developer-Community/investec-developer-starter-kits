@@ -28,7 +28,7 @@ test('library shell, filters and keyboard focus', async ({ page }, info) => {
   const home = page.getByTestId('link-home');
   await tabTo(page, home);
   await visibleFocus(home);
-  await expect(page.locator('body > #root header').first()).toHaveScreenshot('shell-focus.png');
+  await expect(page.getByRole('banner')).toHaveScreenshot('shell-focus.png');
   const search = page.getByRole('searchbox', { name: 'Search kits' });
   await tabTo(page, search);
   await visibleFocus(search);
