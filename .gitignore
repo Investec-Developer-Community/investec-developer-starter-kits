@@ -45,11 +45,18 @@ Thumbs.db
 .pnpm-store/
 /generated-artifacts/
 
+# Local planning and verification documents
+/docs/PRD.md
+/docs/IMPROVEMENT_PLAN.md
+/docs/GITHUB_MIGRATION_PLAN.md
+/docs/verification/
+
 # Test outputs (Playwright)
 playwright-report/
 test-results/
 blob-report/
 playwright/.cache/
+.test-work/
 
 # Environment files — never commit credentials
 .env

@@ -13,9 +13,16 @@ concurrency:
 jobs:
   static-hosting:
     name: Static routes and base paths
-    # Standard Ubuntu runners are Linux x64, matching the workspace lockfile.
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    # Pinned to the @playwright/test version resolved in pnpm-lock.yaml (browsers are
+    # preinstalled, so no `playwright install`). Bump together with the lockfile.
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.1-noble
+    env:
+      HOME: /root
+    # Learning-kit and social metadata Node tests run in ci.yml "Unit and maintenance tests",
+    # on the runner, where python3 is available for ZIP checks.
     steps:
       - uses: actions/checkout@v7
         with:
@@ -25,13 +32,15 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: pnpm
-      - name: Install frontend and root test-tool dependencies
-        run: pnpm install --frozen-lockfile --filter workspace --filter @workspace/starter-kits... --filter @workspace/scripts
-      - name: Check offline teaching calculations and extracted starters
-        run: pnpm --filter @workspace/scripts test:learning-kits
-      - name: Check social metadata and image delivery
-        run: pnpm --filter @workspace/starter-kits test:social
-      - name: Install Chromium and Linux dependencies
-        run: pnpm --filter @workspace/starter-kits exec playwright install --with-deps chromium
-      - name: Check static routes and base paths
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile --filter workspace --filter @workspace/starter-kits...
+      - name: Check static routes, deep links, 404 and both base paths
         run: pnpm --filter @workspace/starter-kits test:static
+      - name: Upload static-hosting results on failure
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: static-hosting-results-${{ github.run_id }}-${{ github.run_attempt }}
+          path: generated-artifacts/static-hosting/results
+          retention-days: 14
+          if-no-files-found: warn

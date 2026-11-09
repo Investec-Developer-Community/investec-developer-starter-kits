@@ -22,8 +22,10 @@ createServer(async (req, res) => {
       }
       file = path.join(file, 'index.html');
     }
+    // Read before writing headers: a directory without index.html must fall through to 404, not crash.
+    const body = await readFile(file);
     res.writeHead(200, { 'Content-Type': types[path.extname(file)] || 'application/octet-stream' });
-    res.end(await readFile(file));
+    res.end(body);
   } catch {
     res.writeHead(404, { 'Content-Type': 'text/html' });
     res.end(await readFile(path.join(root, '404.html')));

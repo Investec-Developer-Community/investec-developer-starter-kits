@@ -1,37 +1,100 @@
-import type { ForecastInput, RecurringInput, ReconcileInput } from './learning-engines.mjs';
+const accountId = 'demo-account-001';
 
-export const runwayFixture: ForecastInput = {
-  currency: 'ZAR', startDate: '2026-11-01', startingMinor: 1500000, dailySpendMinor: 25000,
-  purchaseMinor: 0, purchaseDate: '2026-11-10',
+function transaction(
+  uuid: string,
+  date: string,
+  description: string,
+  amount: number,
+  type: 'CREDIT' | 'DEBIT',
+  status: 'POSTED' | 'PENDING' = 'POSTED',
+) {
+  return {
+    accountId,
+    type,
+    status,
+    description,
+    postingDate: date,
+    valueDate: date,
+    transactionDate: date,
+    amount,
+    uuid,
+  };
+}
+
+function transactionEnvelope(rows: ReturnType<typeof transaction>[]) {
+  return {
+    data: { transactions: rows },
+    links: { self: `/za/pb/v1/accounts/${accountId}/transactions` },
+    meta: { totalPages: 1 },
+  };
+}
+
+function balanceEnvelope(currentBalance: number) {
+  return {
+    data: {
+      accountId,
+      currentBalance,
+      availableBalance: currentBalance,
+      budgetBalance: 0,
+      straightBalance: currentBalance,
+      cashBalance: 0,
+      currency: 'ZAR',
+    },
+    links: { self: `/za/pb/v1/accounts/${accountId}/balance` },
+    meta: { totalPages: 1 },
+  };
+}
+
+export const runwayFixture = {
+  accountId,
+  currency: 'ZAR',
+  startDate: '2026-11-01',
+  balance: balanceEnvelope(15000),
+  transactions: transactionEnvelope([
+    transaction('runway-history', '2026-10-31', 'Demo posted history', 31.09, 'DEBIT'),
+  ]),
+  dailySpend: 250,
+  purchase: { amount: 0, date: '2026-11-10' },
   events: [
-    { id: 'rent', currency: 'ZAR', date: '2026-11-02', amountMinor: 700000, kind: 'bill' },
-    { id: 'insurance', currency: 'ZAR', date: '2026-11-05', amountMinor: 100000, kind: 'bill' },
-    { id: 'salary', currency: 'ZAR', date: '2026-11-25', amountMinor: 2000000, kind: 'income' },
+    { id: 'rent', currency: 'ZAR', date: '2026-11-02', amount: 7000, kind: 'bill' as const },
+    { id: 'insurance', currency: 'ZAR', date: '2026-11-05', amount: 1000, kind: 'bill' as const },
+    { id: 'salary', currency: 'ZAR', date: '2026-11-25', amount: 20000, kind: 'income' as const },
   ],
 };
-export const recurringFixture: RecurringInput = {
-  currency: 'ZAR', asOf: '2026-11-04',
-  transactions: [
-    ...['2026-08-31', '2026-09-30', '2026-10-31'].map((date, i) => ({ id: `gym-${i}`, date, merchant: ['Demo Gym', ' demo gym ', 'DEMO GYM'][i], amountMinor: 49900, currency: 'ZAR', status: 'POSTED' as const, type: 'DEBIT' as const })),
-    ...['2026-08-12', '2026-09-13', '2026-10-12'].map((date, i) => ({ id: `stream-${i}`, date, merchant: 'Demo Streaming', amountMinor: 19900, currency: 'ZAR', status: 'POSTED' as const, type: 'DEBIT' as const })),
-    ...['2026-08-02', '2026-08-19', '2026-10-24'].map((date, i) => ({ id: `cafe-${i}`, date, merchant: 'Demo Cafe', amountMinor: 7500, currency: 'ZAR', status: 'POSTED' as const, type: 'DEBIT' as const })),
-    { id: 'single', date: '2026-10-15', merchant: 'Demo Books', amountMinor: 30000, currency: 'ZAR', status: 'POSTED', type: 'DEBIT' },
-    { id: 'pending', date: '2026-11-03', merchant: 'Demo Gym', amountMinor: 49900, currency: 'ZAR', status: 'PENDING', type: 'DEBIT' },
-  ],
+
+export const recurringFixture = {
+  accountId,
+  currency: 'ZAR',
+  asOf: '2026-11-04',
+  balance: balanceEnvelope(15000),
+  transactions: transactionEnvelope([
+    ...['2026-08-31', '2026-09-30', '2026-10-31'].map((date, index) =>
+      transaction(`gym-${index}`, date, ['Demo Gym', ' demo gym ', 'DEMO GYM'][index], 499, 'DEBIT')),
+    ...['2026-08-12', '2026-09-13', '2026-10-12'].map((date, index) =>
+      transaction(`stream-${index}`, date, 'Demo Streaming', 199, 'DEBIT')),
+    ...['2026-08-02', '2026-08-19', '2026-10-24'].map((date, index) =>
+      transaction(`cafe-${index}`, date, 'Demo Cafe', 75, 'DEBIT')),
+    transaction('single', '2026-10-15', 'Demo Books', 300, 'DEBIT'),
+    transaction('pending', '2026-11-03', 'Demo Gym', 499, 'DEBIT', 'PENDING'),
+  ]),
 };
-export const reconciliationFixture: ReconcileInput = {
-  currency: 'ZAR', asOf: '2026-11-04',
+
+export const reconciliationFixture = {
+  accountId,
+  currency: 'ZAR',
+  asOf: '2026-11-04',
+  balance: balanceEnvelope(15000),
   invoices: [
-    { id: 'inv-1', reference: 'DESIGN-101', amountMinor: 500000, currency: 'ZAR', dueDate: '2026-10-30' },
-    { id: 'inv-2', reference: 'WEB-102', amountMinor: 300000, currency: 'ZAR', dueDate: '2026-11-02' },
-    { id: 'inv-3', reference: 'COPY-103', amountMinor: 150000, currency: 'ZAR', dueDate: '2026-11-01' },
-    { id: 'inv-4', reference: 'SHARED', amountMinor: 100000, currency: 'ZAR', dueDate: '2026-11-10' },
-    { id: 'inv-5', reference: 'SHARED', amountMinor: 100000, currency: 'ZAR', dueDate: '2026-11-10' },
+    { id: 'inv-1', reference: 'DESIGN-101', amount: 5000, currency: 'ZAR', dueDate: '2026-10-30' },
+    { id: 'inv-2', reference: 'WEB-102', amount: 3000, currency: 'ZAR', dueDate: '2026-11-02' },
+    { id: 'inv-3', reference: 'COPY-103', amount: 1500, currency: 'ZAR', dueDate: '2026-11-01' },
+    { id: 'inv-4', reference: 'SHARED', amount: 1000, currency: 'ZAR', dueDate: '2026-11-10' },
+    { id: 'inv-5', reference: 'SHARED', amount: 1000, currency: 'ZAR', dueDate: '2026-11-10' },
   ],
-  payments: [
-    { id: 'pay-1', reference: 'design-101', amountMinor: 500000, currency: 'ZAR', date: '2026-10-29', status: 'POSTED', type: 'CREDIT' },
-    { id: 'pay-2', reference: 'WEB-102', amountMinor: 100000, currency: 'ZAR', date: '2026-11-01', status: 'POSTED', type: 'CREDIT' },
-    { id: 'pay-3', reference: 'UNKNOWN', amountMinor: 25000, currency: 'ZAR', date: '2026-11-02', status: 'POSTED', type: 'CREDIT' },
-    { id: 'pay-4', reference: 'SHARED', amountMinor: 100000, currency: 'ZAR', date: '2026-11-03', status: 'POSTED', type: 'CREDIT' },
-  ],
+  transactions: transactionEnvelope([
+    transaction('pay-1', '2026-10-29', 'design-101', 5000, 'CREDIT'),
+    transaction('pay-2', '2026-11-01', 'WEB-102', 1000, 'CREDIT'),
+    transaction('pay-3', '2026-11-02', 'UNKNOWN', 250, 'CREDIT'),
+    transaction('pay-4', '2026-11-03', 'SHARED', 1000, 'CREDIT'),
+  ]),
 };

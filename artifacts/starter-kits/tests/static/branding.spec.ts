@@ -1,10 +1,33 @@
 import { test, expect } from '@playwright/test';
+import { PROJECT_STATUS_TEXT } from '../../src/data/project-status';
+import { SITE_DESCRIPTION, SITE_IMAGE_ALT } from './site-meta';
 
-test('zebra marks and correctly sized icons load on root and nested pages', async ({ page, request, baseURL }) => {
+test('header zebra, icons and text-only developer links on root and nested pages', async ({ page, request, baseURL }) => {
   for (const route of ['./', 'kits/who-paid', 'getting-started']) {
     await page.goto(route);
     await expect(page.getByRole('link', { name: 'Launchpad home', exact: true })).toBeVisible();
-    for (const id of ['image-header-zebra', 'image-footer-zebra']) {
+    await expect(page.getByTestId('project-status')).toHaveText(
+      PROJECT_STATUS_TEXT,
+    );
+    for (const selector of ['meta[name="description"]', 'meta[property="og:description"]', 'meta[name="twitter:description"]']) {
+      await expect(page.locator(selector)).toHaveAttribute(
+        'content',
+        SITE_DESCRIPTION,
+      );
+    }
+    for (const selector of ['meta[property="og:image:alt"]', 'meta[name="twitter:image:alt"]']) {
+      await expect(page.locator(selector)).toHaveAttribute(
+        'content',
+        SITE_IMAGE_ALT,
+      );
+    }
+    await expect(page.locator('img[src*="investec" i], img[alt*="investec" i]')).toHaveCount(0);
+    const developerPortal = page.getByTestId('link-official-portal');
+    await expect(developerPortal).toHaveAttribute('href', /^https:\/\/developer\.investec\.com(?:\/|$)/);
+    await expect(developerPortal).toBeVisible();
+    expect((await developerPortal.innerText()).trim()).toBeTruthy();
+    await expect(developerPortal.locator('img')).toHaveCount(0);
+    for (const id of ['image-header-zebra']) {
       const mark = page.getByTestId(id);
       await expect(mark).toHaveAttribute('alt', '');
       await expect.poll(() => mark.evaluate(el => {

@@ -1,0 +1,48 @@
+name: Upstream source review
+
+# Network-dependent: fetches upstream repositories, READMEs and licences.
+# Never part of pull-request gates. Read-only; a human records approvals in a PR.
+on:
+  schedule:
+    - cron: '41 7 1 * *' # 1st of each month, 07:41 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: source-review-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  review:
+    name: Read-only upstream source review
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - name: Install review dependencies
+        run: pnpm install --frozen-lockfile --filter @workspace/scripts
+      - name: Verify review logic offline
+        run: pnpm test:sources
+      # Exit 1 means a human must review; the report is uploaded either way.
+      - name: Review upstream sources (never approve)
+        run: |
+          mkdir -p generated-artifacts/source-review
+          set -o pipefail
+          pnpm --silent --filter @workspace/scripts run review:sources --json | tee generated-artifacts/source-review/report.json
+      - name: Retain review evidence even when review fails
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: source-review-${{ github.run_id }}-${{ github.run_attempt }}
+          path: generated-artifacts/source-review/
+          retention-days: 30
+          if-no-files-found: warn

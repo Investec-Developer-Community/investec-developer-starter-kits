@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       update_snapshots:
-        description: Regenerate responsive screenshot baselines on Ubuntu Chromium
+        description: Regenerate responsive screenshot baselines in the pinned Playwright container (uploaded as an artifact, never committed)
         required: false
         default: false
         type: boolean
@@ -53,20 +53,13 @@ jobs:
           cache: pnpm
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      - name: Check offline teaching calculations and extracted starters
-        run: pnpm --filter @workspace/scripts test:learning-kits
-      - name: Check API mappings
-        run: pnpm --filter @workspace/scripts test:mappings
-      - name: Check API server startup
-        run: pnpm --filter @workspace/api-server test
-      - name: Verify source review checks
-        run: pnpm test:sources
-      - name: Verify official API review checks
-        run: pnpm test:api-review
-      - name: Verify CI API review adapter
-        run: node --test scripts/ci-review-api.test.mjs
-      - name: Check social metadata and image delivery (push + manual)
-        if: ${{ github.event_name != 'pull_request' }}
+      # python3 (ZIP extraction in starter-bundle, kits and learning-kits tests) ships with ubuntu-24.04.
+      - name: Confirm python3 for ZIP checks
+        run: python3 --version
+      # Globs every src/maintenance/**/*.test.{ts,mjs} file, plus the CI review adapter test.
+      - name: Run offline maintenance suites (blocking)
+        run: pnpm --filter @workspace/starter-kits test:unit
+      - name: Check social metadata and image delivery
         run: pnpm --filter @workspace/starter-kits test:social
 
   build:
@@ -87,13 +80,23 @@ jobs:
           cache: pnpm
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      - name: Build starter-kits static site
+      - name: Build starter-kits static site (base /)
         run: pnpm --filter @workspace/starter-kits build
+      - name: Build starter-kits static site (repository subpath)
+        env:
+          BASE_PATH: /${{ github.event.repository.name }}/
+        run: pnpm --filter @workspace/starter-kits build --outDir ../../generated-artifacts/ci-subpath-build
 
   responsive:
     name: Responsive and keyboard regressions
     runs-on: ubuntu-24.04
     timeout-minutes: 25
+    # Pinned to the @playwright/test version resolved in pnpm-lock.yaml so browsers and
+    # fonts match the committed screenshot baselines. Bump both together.
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.1-noble
+    env:
+      HOME: /root
     steps:
       - uses: actions/checkout@v7
         with:
@@ -105,8 +108,6 @@ jobs:
           cache: pnpm
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      - name: Install Chromium and Linux dependencies
-        run: pnpm --filter @workspace/starter-kits exec playwright install --with-deps chromium
       - name: Run responsive tests
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.update_snapshots }}" = "true" ]; then
@@ -125,7 +126,7 @@ jobs:
           retention-days: 14
           if-no-files-found: warn
       - name: Upload refreshed responsive baselines
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.update_snapshots == true }}
+        if: ${{ !cancelled() && github.event_name == 'workflow_dispatch' && inputs.update_snapshots == true }}
         uses: actions/upload-artifact@v7
         with:
           name: responsive-baselines-ubuntu-${{ github.run_id }}-${{ github.run_attempt }}

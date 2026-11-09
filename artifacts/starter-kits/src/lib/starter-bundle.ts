@@ -1,4 +1,6 @@
-import type { Kit } from '@/data/kits';
+import type { Kit } from '../data/kits.ts';
+import { sampleHelpersSource } from '../data/sample-helpers-source.ts';
+import { apiReadmeGuidance } from '../data/official-api.ts';
 
 export function starterInstructions(kit: Kit) {
   const step = kit.setup.find(s => s.code?.startsWith(`node ${kit.scriptFile} `));
@@ -18,13 +20,18 @@ export function starterFiles(kit: Kit): Record<string, string> {
   return {
     [kit.scriptFile]: kit.script,
     [kit.dataFile]: JSON.stringify(kit.mockData, null, 2),
+    ...kit.additionalFiles,
+    ...(kit.usesInvestecApi ? { 'sample-helpers.mjs': sampleHelpersSource } : {}),
     'README.md': [
       `# ${kit.name}`, '', kit.tagline, '',
-      '## Run locally', 'Requires Node.js 18 or newer. No packages, credentials or network required.',
-      'Extract all files into one folder, open a terminal in that folder, then run:',
+      '## Run locally', 'Requires Node.js 20.12 or newer; the sample runs offline with no package installation.',
+      'Download the ZIP, extract it, then `cd ' + kit.slug + '` and run:',
       '', '```sh', command, '```', '', '## Expected result', expected, '',
-      '## Safety', 'Fictional offline data only. No bank connection or real money movement.',
-      ...kit.limitations.map(l => `- ${l}`), '', '## Sources and licence', ...provenance,
+      ...(kit.additionalReadme ? [kit.additionalReadme, ''] : []),
+      '## Safety', kit.usesInvestecApi
+        ? 'The bundled runner uses fictional data only and makes no network requests.'
+        : 'Fictional offline data only. No bank connection or real money movement.',
+      ...kit.limitations.map(l => `- ${l}`), '', apiReadmeGuidance(kit.slug), '', '## Sources and licence', ...provenance,
       '', 'Preserve copyright and licence notices in the script. Upstream code was not certified compatible.',
     ].join('\n') + '\n',
   };
@@ -44,7 +51,7 @@ export function createStarterZip(kit: Kit): Uint8Array<ArrayBuffer> {
     }
     return (crc ^ 0xffffffff) >>> 0;
   };
-  const files = Object.entries(starterFiles(kit));
+  const files = Object.entries(starterFiles(kit)).map(([filename, text]) => [`${kit.slug}/${filename}`, text] as const);
   for (const [filename, text] of files) {
     const name = encoder.encode(filename), data = encoder.encode(text), crc = crc32(data);
     const local = new Uint8Array(30 + name.length), v = new DataView(local.buffer);

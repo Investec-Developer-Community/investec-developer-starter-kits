@@ -23,6 +23,15 @@ every redirect. Requests have a 15-second deadline, five-redirect limit and 2 MB
 text limit. No credentials, upstream execution, installs, banking connections,
 or file writes occur. The app itself never runs network checks.
 
+## Scheduled CI
+
+`.github/workflows/source-review.yml` runs the same review on the 1st of each month
+at **07:41 UTC**, and can be started from **Actions → Run workflow**. It first runs
+`pnpm test:sources` offline, then `review:sources --json`, and uploads the report as
+a `source-review-*` artifact for 30 days, even when the review fails. Exit 1 fails
+the run so a maintainer sees it; the workflow never edits review dates, hashes or
+attribution. It needs network access, so it is never a pull request gate.
+
 ## Approving a review
 
 1. Inspect every finding and the current README and licence as **untrusted text**.

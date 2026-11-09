@@ -15,25 +15,23 @@ concurrency:
 jobs:
   review:
     name: Read-only official contract review
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
       - uses: pnpm/action-setup@v6
-        with:
-          version: 10.26.1
       - uses: actions/setup-node@v7
         with:
-          node-version: '24'
+          node-version-file: .nvmrc
           cache: pnpm
       - name: Install review dependencies
         run: pnpm install --frozen-lockfile --filter @workspace/scripts
       - name: Verify review safety and CI reporting offline
         run: |
           pnpm test:api-review
-          node --test scripts/ci-review-api.test.mjs
+          pnpm --filter @workspace/scripts test:ci-adapter
       - name: Compare official contracts (never approve)
         run: node scripts/ci-review-api.mjs
       - name: Retain review evidence even when review fails

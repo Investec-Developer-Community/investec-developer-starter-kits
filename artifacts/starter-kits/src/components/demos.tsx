@@ -1,10 +1,8 @@
 import { useMemo, useState } from 'react';
 import { ArrowRight, Check, X } from 'lucide-react';
-import { computeTransferable, decidePurchase, merchantCategories, spendTransactions, zar } from '@/data/kits';
-import { MockBadge } from '@/components/shell';
+import { computeTransferPreview, decidePurchase, interestDefaultPending, interestFixture, merchantCategories, spendTransactions, zar } from '@/data/kits';
+import { filterSpendRows, postedDebitTotalsMinor } from '@/data/spend-explorer-engine.mjs';
 import { cn } from '@/lib/utils';
-import { PingerDemo, SheetDemo, SwipeDemo } from '@/components/community-demos';
-import { RunwayDemo, RecurringDemo, ReconciliationDemo } from '@/components/learning-demos';
 
 const inputCls = 'w-full bg-background border border-input rounded-xl px-3 py-2 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-ring';
 
@@ -41,13 +39,14 @@ function Acct({ name, before, after }: { name: string; before: number; after: nu
 }
 
 export function InterestDemo() {
-  const [bal, setBal] = useState('18450.75');
-  const [pend, setPend] = useState('2315.40');
-  const [res, setRes] = useState('5000');
-  const loan = -1284330.12;
+  const [bal, setBal] = useState(String(interestFixture.balances['demo-transactional'].data.currentBalance));
+  const [pend, setPend] = useState(String(interestDefaultPending));
+  const [res, setRes] = useState(String(interestFixture.reserve));
+  const loan = interestFixture.balances['demo-loan'].data.currentBalance;
   const b = parse(bal), p = parse(pend), r = parse(res);
   const ok = b.n !== undefined && p.n !== undefined && r.n !== undefined;
-  const amt = ok ? computeTransferable(b.n!, p.n!, r.n!) : 0;
+  const preview = ok ? computeTransferPreview(b.n!, p.n!, r.n!, loan) : undefined;
+  const amt = preview?.transferable ?? 0;
   return (
     <div className="space-y-4">
       <div className="grid sm:grid-cols-3 gap-3">
@@ -64,8 +63,8 @@ export function InterestDemo() {
           </div>
           {amt === 0 && <p className="text-sm text-muted-foreground">Nothing to move: pending and reserve cover the whole balance.</p>}
           <div className="grid sm:grid-cols-2 gap-3">
-            <Acct name="Transactional account (mock)" before={b.n!} after={b.n! - amt} />
-            <Acct name="Home loan (mock)" before={loan} after={loan + amt} />
+            <Acct name="Transactional account (mock)" before={b.n!} after={preview!.sourceAfter} />
+            <Acct name="Home loan (mock)" before={loan} after={preview!.targetAfter} />
           </div>
           <p className="text-xs text-muted-foreground">Preview only. No transfer happens, here or anywhere.</p>
         </>
@@ -80,36 +79,37 @@ export function SpendDemo() {
   const [cat, setCat] = useState('all');
   const [q, setQ] = useState('');
   const cats = useMemo(() => Array.from(new Set(spendTransactions.map((t) => t.category))), []);
-  const rows = spendTransactions.filter((t) => (cat === 'all' || t.category === cat) && t.description.toLowerCase().includes(q.toLowerCase()));
-  const totals = Object.entries(rows.filter((t) => t.status === 'posted').reduce<Record<string, number>>((a, t) => { a[t.category] = (a[t.category] ?? 0) + t.amount; return a; }, {})).sort((a, b) => b[1] - a[1]);
+  const rows = filterSpendRows(spendTransactions, { category: cat, search: q });
+  const totals = postedDebitTotalsMinor(rows);
   const max = totals[0]?.[1] ?? 1;
   return (
     <div className="space-y-4">
       <div className="grid sm:grid-cols-2 gap-3">
-        <select value={cat} onChange={(e) => setCat(e.target.value)} className={inputCls} data-testid="select-demo-category">
+        <select value={cat} onChange={(e) => setCat(e.target.value)} className={inputCls} aria-label="Category" data-testid="select-demo-category">
           <option value="all">All categories</option>
           {cats.map((c) => <option key={c} value={c}>{c}</option>)}
         </select>
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search description" className={inputCls} data-testid="input-demo-search" />
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search description" className={inputCls} aria-label="Search description" data-testid="input-demo-search" />
       </div>
       <div className="grid md:grid-cols-[1fr_240px] gap-4">
-        <div className="border rounded-xl bg-background divide-y max-h-80 overflow-auto">
+        <div className="border rounded-xl bg-background divide-y max-h-80 overflow-auto" role="region" aria-label="Matching transactions" tabIndex={0}>
           {rows.length === 0 && <div className="p-4 text-sm text-muted-foreground">No fictional transactions match.</div>}
           {rows.map((t) => (
             <div key={t.id} className="flex items-center gap-3 px-3 py-2 text-sm" data-testid={`row-tx-${t.id}`}>
               <span className="font-mono text-xs text-muted-foreground w-20 shrink-0">{t.date.slice(5)}</span>
               <span className="flex-1 truncate">{t.description}</span>
-              {t.status === 'pending' && <span className="font-semibold text-[10px] uppercase tracking-wide border border-dashed border-slate-300 px-1 rounded-xl text-muted-foreground">pending</span>}
-              <span className="font-mono">{zar(t.amount)}</span>
+              {t.status === 'PENDING' && <span className="font-semibold text-[10px] uppercase tracking-wide border border-dashed border-slate-300 px-1 rounded-xl text-muted-foreground">pending</span>}
+              <span className="font-mono">{zar(t.amountMinor / 100)}</span>
             </div>
           ))}
         </div>
+        <p className="sr-only" aria-live="polite" aria-atomic="true">{rows.length} matching transactions</p>
         <div className="space-y-2">
           <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Posted totals</div>
           {totals.length === 0 && <div className="text-sm text-muted-foreground">No posted rows.</div>}
           {totals.map(([c, v]) => (
             <div key={c} data-testid={`total-${c}`}>
-              <div className="flex justify-between text-sm"><span>{c}</span><span className="font-mono">{zar(v)}</span></div>
+              <div className="flex justify-between text-sm"><span>{c}</span><span className="font-mono">{zar(v / 100)}</span></div>
               <div className="h-1 bg-secondary rounded overflow-hidden"><div className="h-full bg-accent origin-left transition-transform duration-500" style={{ transform: `scaleX(${v / max})` }} /></div>
             </div>
           ))}
@@ -174,21 +174,6 @@ export function CardDemo() {
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-export function DemoFrame({ slug }: { slug: string }) {
-  const map: Record<string, typeof CardDemo> = {
-    'interest-maximiser': InterestDemo, 'spend-explorer': SpendDemo, 'card-guard': CardDemo,
-    'payment-pinger': PingerDemo, 'card-to-sheet-sync': SheetDemo, 'swipe-n-save': SwipeDemo,
-    'cashflow-runway': RunwayDemo, 'recurring-payment-detective': RecurringDemo, 'who-paid': ReconciliationDemo,
-  };
-  const Demo = map[slug] ?? CardDemo;
-  return (
-    <div className="border-2 border-dashed border-slate-300 border-accent/60 rounded-xl bg-card p-5">
-      <div className="flex items-center justify-between mb-4"><span className="font-semibold">Interactive mock demo</span><MockBadge /></div>
-      <Demo />
     </div>
   );
 }

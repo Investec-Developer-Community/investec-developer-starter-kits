@@ -14,7 +14,7 @@ export function KitCard({ kit, index = 0 }: { kit: Kit; index?: number }) {
     <article className="rise group relative min-w-0 border bg-card rounded-xl shadow-sm p-5 flex flex-col gap-3 transition-transform hover:shadow-md"
       style={{ animationDelay: `${index * 70}ms` }} data-testid={`card-kit-${kit.slug}`}>
       <div className="flex items-start justify-between gap-3">
-        <span className="font-semibold text-[11px] uppercase tracking-wide text-muted-foreground">{kit.category}</span>
+        <span className="category font-semibold text-[11px] uppercase tracking-wide text-muted-foreground">{kit.category}</span>
       </div>
       <h3 className="text-lg font-semibold">
         <Link href={`/kits/${kit.slug}`} className="after:absolute after:inset-0" data-testid={`link-kit-${kit.slug}`}>{kit.name}</Link>

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { accountStatus, purchaseScenarios, runMappingChecks, runScenarioChecks, zarToCents } from '../data/api-mappings';
+import { accountStatus, purchaseScenarios, runMappingChecks, runScenarioChecks, zarToCents } from '../data/api-mappings.ts';
 
 test('all displayed offline fixture checks pass', () => {
   for (const check of runMappingChecks()) assert.equal(check.passed, true, check.label);

@@ -163,6 +163,29 @@ Reviewed documents:
   to upstream, not asserted as a complete current endpoint permission contract.
 - Third-party authorisation is a separate approved 3-legged OAuth flow.
 
-All six starter scripts include corresponding guidance as comments, with no
-behavior or data-schema changes. Community authorship and licence notices are
+The account-kit runners use fictional fixtures in mock-only mode, without loading
+credentials or making network requests. Their local calculations derive integer
+minor-unit values from documented major-unit amounts; this is an application
+calculation, not an API field. Community authorship and licence notices are
 preserved. Review dates are documentary evidence, not compatibility certification.
+
+## Account and transaction classification from the committed baseline
+
+The approved Private Bank snapshot in `scripts/official-api-baseline.json`
+(version 1.0.1, retrieved 2026-11-05) is the source for this classification.
+No live service or current public-page fetch was used for this pass.
+
+| Topic | Documented by the snapshot | Unknown or derived in the examples |
+|---|---|---|
+| Transaction fields and status | `data.transactions`; `type` enum `CREDIT`/`DEBIT`; `status` enum `POSTED`/`PENDING`; `description`, date fields, `amount`, `postedOrder`, `uuid`, and other listed `Transaction` properties. | Status lifecycle, final settlement, and any meaning/order implied by `postedOrder` (including zero). |
+| Amount | `amount` is a number described as monetary units in an explicit currency. The response example has positive values for both CREDIT and DEBIT. | The schema does not define raw sign semantics. Kits derive signed integer minor units locally from `type`; `*Minor` results are not API fields. |
+| Balance | `data` includes `currentBalance`, `availableBalance`, `budgetBalance`, `straightBalance`, `cashBalance`, and `currency`. | Teaching schedules, reserves, and forecast values are app inputs, not bank balances. |
+| Filters and pages | Transaction query parameters are `fromDate`, `toDate`, `transactionType`, and `includePending`; `meta.totalPages` is an integer. A separate pending-transactions operation is listed. | Date-boundary rules and page-navigation behavior are not specified here; there is no `page` query parameter in the operation. |
+| Who Paid? | The transaction schema documents `description` as a string. | There is no `reference` property in the approved `Transaction` schema. Matching invoice references to descriptions is a fictional local heuristic, not a bank-provided reference field. |
+
+Pointers: `/paths/~1za~1pb~1v1~1accounts~1{accountId}~1transactions/get/parameters`,
+`/paths/~1za~1pb~1v1~1accounts~1{accountId}~1transactions/get/responses/200/content/application~1json/example`,
+`/components/schemas/Transaction/properties`,
+`/components/schemas/Transaction/properties/amount/description`,
+`/components/schemas/GetTransactions/properties/meta/properties/totalPages`,
+and `/components/schemas/AccountBalance/properties`.

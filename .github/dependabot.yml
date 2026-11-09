@@ -23,8 +23,6 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: "react-resizable-panels"
         update-types: ["version-update:semver-major"]
-      - dependency-name: "pino"
-        update-types: ["version-update:semver-major"]
     groups:
       npm-minor-and-patch:
         update-types:

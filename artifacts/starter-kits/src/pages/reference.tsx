@@ -1,6 +1,7 @@
 import { Link } from 'wouter';
 import { ArrowLeft } from 'lucide-react';
 import { ApiMappingGuide } from '@/components/api-mapping-guide';
+import { OfficialApiGuidance } from '@/components/official-api-guidance';
 
 const toc = [
   { id: 'card-mapping', label: 'Card: mock vs REST vs runtime' },
@@ -19,6 +20,10 @@ export default function Reference() {
       <nav aria-label="Reference sections" className="mt-6 flex flex-wrap gap-2 text-sm">
         {toc.map((t) => <a key={t.id} href={`#${t.id}`} className="press border bg-card px-3 py-1.5 rounded-xl hover:bg-secondary" data-testid={`link-ref-${t.id}`}>{t.label}</a>)}
       </nav>
+      <section className="mt-8 border rounded-xl p-5 space-y-3" aria-labelledby="official-reference-title">
+        <h2 id="official-reference-title" className="text-xl font-semibold">Official next steps and illustrative sample notes</h2>
+        <OfficialApiGuidance />
+      </section>
       <div className="mt-8"><ApiMappingGuide /></div>
     </div>
   );

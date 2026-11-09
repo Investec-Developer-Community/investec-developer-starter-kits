@@ -1,4 +1,4 @@
-import { API_REVIEW_DATE, officialDocs } from './official-api';
+import { API_REVIEW_DATE, officialDocs } from './official-api.ts';
 
 /** Independent teaching fixtures. Never imported by starter downloads or persistence. */
 export const mappingReview = { date: API_REVIEW_DATE, sources: [officialDocs.card, officialDocs.bank] };
@@ -101,9 +101,9 @@ export function runScenarioChecks() {
 }
 
 export const fieldMappings = [
-  ['Mock amount: 123.45 ZAR', 'REST centsAmount: "12345"; runtime centsAmount: 12345', '×100 for this two-decimal currency. String in REST, number in runtime examples. Never send 123.45 as cents.'],
-  ['Mock merchant', 'REST merchantName → runtime merchant.name', 'REST property documented; runtime path observed in official logs, not a complete event schema.'],
-  ['Mock merchantCategory / mcc', 'REST merchantCode: 5462 → runtime merchant.category.code: "5462"', 'Unverified mapping: a local category label is not an MCC lookup. Code 5462 is explicitly chosen for this example; do not infer it from “Groceries”.'],
+  ['Mock amount: 123.45 ZAR', 'REST centsAmount: "12345"; runtime centsAmount: 12345', '×100 for this two-decimal currency. The REST request uses a string; the hook argument uses a number, as in the official simulation log. Values here are fictional.'],
+  ['Mock merchant', 'REST merchantName; runtime merchant.name', 'Both documented: the REST property and the merchant.name hook field in the official simulation log.'],
+  ['Mock merchantCategory / mcc', 'REST merchantCode: 5462; runtime merchant.category.code: "5462"', 'Both fields are documented, but no mapping between them or from a local category is established. Code 5462 is chosen for this fixture; do not infer it from “Groceries”.'],
   ['Mock approved / declined', 'No direct account status mapping', 'Local decision labels are not POSTED/PENDING or proof of settlement. beforeTransaction and afterTransaction are different hooks.'],
   ['Mock transactions[]', 'data.transactions[]', 'Documented account response envelope; links and meta are response siblings. This is not a Card event or the result of the simulation above.'],
   ['Mock amount: 123.45', 'Account amount: 123.45', 'Major units, not cents. ZAR account currency is assumed for this example; confirm account currency separately. Direction comes from CREDIT/DEBIT, never from the positive mock amount.'],
@@ -117,7 +117,7 @@ export function runMappingChecks() {
     { label: '123.45 ZAR → "12345" REST cents → 12345 numeric runtime cents', passed: zarToCents(String(cardMockExample.amount)) === cardRequestExample.centsAmount && Number(cardRequestExample.centsAmount) === cardRuntimeExample.centsAmount },
     { label: 'One cent and zero convert exactly', passed: zarToCents('0.01') === '1' && zarToCents('0') === '0' },
     { label: 'Excess precision and negative amounts are rejected', passed: rejects(() => zarToCents('1.005')) && rejects(() => zarToCents('-1')) },
-    { label: 'Flat REST merchant fields match this nested runtime illustration', passed: cardRequestExample.merchantName === cardRuntimeExample.merchant.name && String(cardRequestExample.merchantCode) === cardRuntimeExample.merchant.category.code },
+    { label: 'Fictional runtime fixture repeats selected REST example values', passed: cardRequestExample.merchantName === cardRuntimeExample.merchant.name && String(cardRequestExample.merchantCode) === cardRuntimeExample.merchant.category.code },
     { label: 'Account envelope preserves major-unit amounts, without ×100', passed: accountEnvelopeExample.data.transactions[0].amount === accountMockExample.amount },
     { label: 'POSTED/PENDING map explicitly; unknown status is rejected', passed: accountStatus('POSTED') === accountMockExample.status && accountStatus('PENDING') === 'pending' && rejects(() => accountStatus('DECLINED')) },
   ];

@@ -1,10 +1,11 @@
 # GitHub Pages
 
 This website is fully static. Its demos, ZIP generation, command copying and
-manual checklist progress run in the browser. Do **not** deploy the API server,
-database, `.env` files or workspace root. No database or banking credentials
-are needed. Node is required to **build** the website and run downloaded local
-kits (Node 18+ for those kits), not to serve the built website.
+manual checklist progress run in the browser. Deploy only
+`artifacts/starter-kits/dist/public`; never deploy `.env` files or the workspace
+root. The repository has no server or database package, and no banking
+credentials are needed. Node is required to **build** the website and run
+downloaded local kits (Node 20.12+ for those kits), not to serve the built website.
 
 ## Enable deployment
 
@@ -40,7 +41,7 @@ BASE_PATH=/investec-developer-starter-kits/ pnpm --filter @workspace/starter-kit
 ```
 
 Build output: `artifacts/starter-kits/dist/public/`. Publish its **contents**.
-Do not use the workspace-wide `pnpm build`, which also builds unrelated services.
+You do not need the workspace-wide `pnpm build`; it adds a typecheck of both workspace packages before the same site build.
 Development (`pnpm --filter @workspace/starter-kits dev`) defaults to port 5173
 and base `/`; `PORT` and `BASE_PATH` override them.
 Changing the public hosting path requires a rebuild.
@@ -89,9 +90,18 @@ pnpm --filter @workspace/starter-kits test:static
 The suite builds both `/` and `/starter-kits/` with `PORT` unset and serves them
 with a plain Node file server that has **no SPA fallback**. It checks every
 known page and refresh, script/style/image/favicon requests, anchors, navigation,
-legacy saved redirection, real HTTP 404s, all six demos, ZIP downloads, clipboard
-copying and persisted manual progress. Browser requests outside the hosting
-prefix and runtime fetch/XHR requests fail the suite. Generated builds and test
+legacy saved redirection, real HTTP 404s, every kit demo (kits 1–6 in
+`hosting.spec.ts`, kits 7–9 in `learning-kits.spec.ts`), ZIP downloads,
+clipboard copying and persisted manual progress. `invariants.spec.ts` also
+checks every route for credential inputs and runtime or off-origin requests,
+checks that downloads are client-side blobs, tolerates corrupted
+`localStorage`, and scans the built bundle for network clients, banking API
+hosts and backend packages. Browser requests outside the hosting prefix and
+runtime fetch/XHR requests fail the suite.
+
+In CI, `static-hosting.yml` runs this suite on every pull request inside the
+pinned `mcr.microsoft.com/playwright:v1.64.1-noble` container. Bump the image tag
+whenever `@playwright/test` changes in `pnpm-lock.yaml`. Generated builds and test
 output stay in ignored `generated-artifacts/static-hosting/`.
 
 ## Troubleshooting and storage
