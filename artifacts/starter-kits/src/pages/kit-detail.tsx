@@ -1,16 +1,19 @@
 import { sourceReviewStatus } from '@/data/source-review';
-import { API_REVIEW_DATE, apiAlignment, authNote, accountKitSlugs } from '@/data/official-api';
+import { apiAlignment, accountKitSlugs } from '@/data/official-api';
 import { CommandBlock } from '@/components/command-block';
 import { Link, useParams } from 'wouter';
 import { ArrowLeft, Check, Download, ExternalLink, FileJson, FileCode, Package, Play, RotateCcw, Terminal, TriangleAlert } from 'lucide-react';
 import { getKit } from '@/data/kits';
 import { downloadText, useLocalStore } from '@/lib/local';
-import { DemoFrame } from '@/components/demos';
+import { DemoFrame } from '@/components/demo-frame';
 import { downloadStarterBundle, starterInstructions } from '@/lib/starter-bundle';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { LocalTroubleshooting } from '@/components/local-troubleshooting';
 import { TakeItFurther } from '@/components/take-it-further';
+import { kitIssueUrl } from '@/lib/community-links';
+import { OfficialApiGuidance } from '@/components/official-api-guidance';
+import { CardCodeSampleGuide } from '@/components/card-code-sample-guide';
 
 export default function KitDetail() {
   const { slug = '' } = useParams<{ slug: string }>();
@@ -39,11 +42,17 @@ export default function KitDetail() {
     catch (e) { toast({ variant: 'destructive', title: 'ZIP download failed', description: `${e instanceof Error ? e.message : 'Unknown error'}. The individual files below still work.` }); }
   };
   const run = starterInstructions(kit);
+  const nodeRequirement = kit.slug === 'card-guard' ? 'Node 20.12+' : 'Node 18+';
+  const cardCodeStep = kit.slug === 'card-guard'
+    ? kit.setup.find(step => step.title === 'Try the card-code teaching model' && step.code)
+    : undefined;
   const isCard = !accountKitSlugs.includes(kit.slug);
   const refLinks = isCard
     ? [{ id: 'card-mapping', label: 'Card: mock purchase vs REST simulation vs runtime' }, { id: 'field-mappings', label: 'Field mappings and local checks' }]
     : [{ id: 'account-mapping', label: 'Accounts: mock row vs transaction envelope' }, { id: 'pending-refunds', label: 'Pending purchases, posted debits and possible refunds' }, { id: 'field-mappings', label: 'Field mappings and local checks' }];
+  const alignment = apiAlignment(kit.slug);
   const sections = [{ id: 'try', label: 'Try' }, { id: 'run', label: 'Run' }, { id: 'api-notes', label: 'API notes' }, { id: 'sources', label: 'Sources' }];
+  const issueUrl = kitIssueUrl(kit.slug);
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
       <Link href="/" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground" data-testid="link-back"><ArrowLeft className="w-4 h-4" />All kits</Link>
@@ -57,7 +66,7 @@ export default function KitDetail() {
           </div>
         </div>
         <dl className="mt-4 flex flex-wrap gap-x-6 gap-y-1 text-sm" data-testid="text-prereqs">
-          <div className="flex gap-1"><dt className="text-muted-foreground">Local run:</dt><dd>Node 18+ (browser demo needs no install)</dd></div>
+          <div className="flex gap-1"><dt className="text-muted-foreground">Local run:</dt><dd>{nodeRequirement} (browser demo needs no install)</dd></div>
           <div className="flex gap-1"><dt className="text-muted-foreground">Credentials:</dt><dd>none</dd></div>
           <div className="flex gap-1"><dt className="text-muted-foreground">Data:</dt><dd>fictional mock only, no bank connection</dd></div>
         </dl>
@@ -77,6 +86,11 @@ export default function KitDetail() {
         <nav aria-label="On this page" className="mt-5 flex flex-wrap gap-4 text-sm">
           {sections.map((x) => <a key={x.id} href={`#${x.id}`} className="text-muted-foreground hover:text-foreground underline-offset-4 hover:underline" data-testid={`link-section-${x.id}`}>{x.label}</a>)}
         </nav>
+        <p className="mt-4 text-sm">
+          <a href={issueUrl} target="_blank" rel="noopener noreferrer" className="underline underline-offset-4 text-primary" data-testid="link-report-kit-issue">
+            Edit / report a problem with this kit
+          </a>
+        </p>
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-10 mt-8">
@@ -88,7 +102,7 @@ export default function KitDetail() {
             <div className="border rounded-xl bg-card shadow-sm p-4 space-y-3" data-testid="section-starter-files">
               <div className="font-semibold text-xs uppercase tracking-wide text-muted-foreground">Starter files</div>
               <button type="button" onClick={zip} className="press w-full flex items-center gap-2 bg-primary text-primary-foreground px-3 py-2 rounded-xl text-sm font-semibold" data-testid="button-download-bundle">
-                <Package className="w-4 h-4 shrink-0" /><span className="flex-1 min-w-0 text-left">Starter bundle (.zip): script, JSON, README</span><Download className="w-4 h-4 shrink-0" />
+                <Package className="w-4 h-4 shrink-0" /><span className="flex-1 min-w-0 text-left">{kit.slug === 'card-guard' ? 'Starter bundle (.zip): mock rules and card-code sample' : 'Starter bundle (.zip): script, JSON, README'}</span><Download className="w-4 h-4 shrink-0" />
               </button>
               <div className="grid sm:grid-cols-2 gap-2">
                 <button type="button" onClick={() => dl('script')} className="press w-full flex items-center gap-2 border px-3 py-2 rounded-xl text-sm hover:bg-secondary min-w-0" data-testid="button-download-script">
@@ -106,8 +120,9 @@ export default function KitDetail() {
                 <div className="text-sm font-semibold">Expected output</div>
                 <pre className="mt-2 overflow-x-auto rounded-xl bg-secondary p-3 text-xs" tabIndex={0} data-testid="text-expected-output">{run.expected}</pre>
               </div>
-              <p className="text-xs text-muted-foreground">Node 18+, no credentials, no network. Dry-run on fictional data only.</p>
+              <p className="text-xs text-muted-foreground">{nodeRequirement}, no credentials, no network. Dry-run on fictional data only.</p>
             </div>
+            {cardCodeStep?.code && <CardCodeSampleGuide command={cardCodeStep.code} />}
             <ol className="space-y-5 mt-6">
               {kit.setup.map((s, i) => (
                 <li key={i} className="grid grid-cols-[2rem_1fr] gap-3">
@@ -129,9 +144,12 @@ export default function KitDetail() {
 
           <section id="api-notes" aria-labelledby="h-api" className="scroll-mt-32 md:scroll-mt-36">
             <h2 id="h-api" className="text-2xl font-semibold mb-4">API notes</h2>
-            <p className="text-sm text-muted-foreground mb-3">Official API alignment. Documentation reviewed {API_REVIEW_DATE}. Not a live integration or compatibility certification.</p>
-            <div className="flex flex-wrap gap-3 mb-4">{apiAlignment(kit.slug).docs.map(d => <a key={d.url} href={d.url} target="_blank" rel="noreferrer" className="underline text-primary">{d.label}</a>)}</div>
-            <ul className="space-y-3 text-sm [overflow-wrap:anywhere]">{[...apiAlignment(kit.slug).notes, authNote].map(note => <li key={note} className="border-l-2 border-accent pl-3">{note}</li>)}</ul>
+            <p className="text-sm text-muted-foreground mb-3">Illustrative alignment notes based on documented examples; not a live response or compatibility guarantee.</p>
+            {alignment.notes.length > 0 && <ul className="space-y-3 text-sm [overflow-wrap:anywhere] mb-4">{alignment.notes.map(note => <li key={note} className="border-l-2 border-accent pl-3">{note}</li>)}</ul>}
+            <div className="border rounded-xl p-4 space-y-3">
+              <h3 id="kit-official-next-step-title" className="font-semibold">Official next steps and illustrative sample notes</h3>
+              <OfficialApiGuidance slug={kit.slug} docs={alignment.docs} />
+            </div>
             <div className="mt-5 border rounded-xl p-4" data-testid="section-reference-links">
               <div className="font-semibold text-sm">Mock vs API reference for this kit</div>
               <p className="text-xs text-muted-foreground mt-1">Fictional fixtures with uncertainty labels and runnable local checks. Not proof of API compatibility.</p>
@@ -175,7 +193,7 @@ export default function KitDetail() {
           </section>
         </div>
 
-        <aside className="min-w-0 space-y-6 lg:sticky lg:top-32 self-start">
+        <aside aria-label="Kit checklist" className="min-w-0 space-y-6 lg:sticky lg:top-32 self-start">
           <div className="border rounded-xl bg-card shadow-sm p-4">
             <div className="flex items-center justify-between">
               <div className="font-semibold text-xs uppercase tracking-wide text-muted-foreground">Checklist</div>

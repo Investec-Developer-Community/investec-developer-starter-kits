@@ -29,7 +29,6 @@ minimumReleaseAge: 1440
 
 packages:
   - artifacts/*
-  - lib/*
   - scripts
 
 catalog:
@@ -41,7 +40,6 @@ catalog:
   '@vitejs/plugin-react': ^5.2.0
   class-variance-authority: ^0.7.1
   clsx: ^2.1.1
-  drizzle-orm: ^0.45.4
   framer-motion: ^14.9.1
   lucide-react: ^1.68.0
   # Exact pin kept from the original scaffold; upgrade only after verifying the app
@@ -63,10 +61,6 @@ onlyBuiltDependencies:
   - unrs-resolver
 
 overrides:
-  # drizzle-kit uses esbuild internally on an older version that's vulnerable, this overrides it
-  "@esbuild-kit/esm-loader": "npm:tsx@^4.21.0"
   esbuild: "0.28.2"
-  # orval pins js-yaml to an exact version older than the CVE fix (>=4.3.2)
-  js-yaml: '4.3.2'
   # @tailwindcss/typography pins postcss-selector-parser to 6.0.10 (CVE fixed in 6.1.5)
   postcss-selector-parser: '^6.1.5'

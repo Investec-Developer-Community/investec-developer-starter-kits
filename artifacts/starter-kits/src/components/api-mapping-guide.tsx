@@ -7,7 +7,7 @@ import {
 
 function Example({ title, note, value }: { title: string; note: string; value: unknown }) {
   return <div className="min-w-0 rounded-xl border p-3">
-    <h4 className="font-semibold text-sm">{title}</h4>
+    <h3 className="font-semibold text-sm">{title}</h3>
     <p className="text-xs text-muted-foreground my-2">{note}</p>
     <pre className="overflow-x-auto rounded bg-secondary p-3 text-xs" tabIndex={0}><code>{JSON.stringify(value, null, 2)}</code></pre>
   </div>;
@@ -19,17 +19,17 @@ export function ApiMappingGuide() {
   return <section id="field-mappings" className="scroll-mt-40 space-y-4" data-testid="section-api-mappings">
     <h2 className="text-2xl font-semibold">Mock → API field guide</h2>
     <p className="text-sm text-muted-foreground">Fictional, offline examples only. Separate from starter inputs, saved progress and downloads. Nothing here authenticates, sends a request or executes card code.</p>
-    <p className="text-xs text-muted-foreground">Official portal OpenAPI payloads reviewed {mappingReview.date}; runtime fields observed in logged examples, not verified as a full hook contract.</p>
+    <p className="text-xs text-muted-foreground">Official portal OpenAPI payloads reviewed {mappingReview.date}; runtime-field examples below use a subset of the documented hook argument fields with fictional values.</p>
     <div className="flex flex-wrap gap-3 text-sm">{mappingReview.sources.map(source => <a key={source.url} href={source.url} target="_blank" rel="noreferrer" className="underline text-primary">{source.label} documentation</a>)}</div>
     <details id="card-mapping" className="scroll-mt-40 rounded-xl border p-4" open>
       <summary className="cursor-pointer font-semibold">Card: mock purchase vs REST simulation vs runtime</summary>
-      <p className="my-3 text-sm">Documented operation: <code className="break-all">POST /za/v1/cards/&#123;cardKey&#125;/code/execute</code>. The request is not a hook argument. Its response wraps execution results; the runtime example below illustrates selected fields logged inside a hook, not the REST response.</p>
+      <p className="my-3 text-sm">Documented operation: <code className="break-all">POST /za/v1/cards/&#123;cardKey&#125;/code/execute</code>. The request is not a hook argument. Its response wraps execution results; the runtime example below is a fictional fixture using fields from the authorization logged in that response&apos;s official example, not the REST response itself.</p>
       <Example title="Local mock purchase" note="Card Guard-shaped fiction. Category is a hand-assigned label." value={cardMockExample} />
       <div className="mt-3 grid md:grid-cols-2 gap-3">
         <Example title="REST simulation request body" note="Documented property names and types. Code is displayed only, never run." value={cardRequestExample} />
-        <Example title="Runtime hook argument — partial illustration" note="Observed in official before/after logs. Missing fields and requiredness remain unverified; do not treat this as a complete event contract." value={cardRuntimeExample} />
+        <Example title="Runtime hook argument — documented fields, fictional values" note="Field names and types match the authorization logged in the official /code/execute example. The complete field list and the afterDecline argument are not documented; this is not a complete event contract." value={cardRuntimeExample} />
       </div>
-      <p className="text-xs text-muted-foreground mt-3">beforeTransaction(authorization) runs during authorisation with limited execution time; afterTransaction(transaction) runs afterward. Neither this example nor a local approval proves settlement.</p>
+      <p className="text-xs text-muted-foreground mt-3">The approved sample names beforeTransaction(authorization), afterTransaction(transaction) and afterDecline(transaction). The hook argument fields and return-value meaning are not established here; neither this example nor a local approval proves settlement.</p>
     </details>
     <details id="account-mapping" className="scroll-mt-40 rounded-xl border p-4" open>
       <summary className="cursor-pointer font-semibold">Accounts: mock row vs transaction envelope</summary>
@@ -57,7 +57,7 @@ export function ApiMappingGuide() {
       <p className="text-xs text-muted-foreground">Checks inspect these fixtures only. They do not predict transaction outcomes, reconcile purchases or verify API compatibility. No credentials, requests, card execution or saved-progress changes.</p>
       <div aria-live="polite" data-testid="scenario-check-results">{scenarioChecks && <ul className="space-y-2 text-sm">{scenarioChecks.map(check => <li key={check.label}><strong>{check.passed ? 'PASS' : 'FAIL'}</strong> · {check.label}</li>)}</ul>}</div>
     </section>
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto" role="region" aria-label="Field mappings table" tabIndex={0}>
       <table className="w-full text-sm text-left">
         <caption className="text-left font-semibold mb-2">Field mappings and verification limits</caption>
         <thead><tr>{['Local field', 'API field / shape', 'Conversion or limitation'].map(label => <th key={label} scope="col" className="border-b p-2">{label}</th>)}</tr></thead>

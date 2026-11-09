@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { BellRing, Download, Mail, PiggyBank, Plus, TriangleAlert } from 'lucide-react';
-import { pinger, sheet, swipe } from '@/data/community-logic';
+import { previewPing } from '@/data/payment-pinger-engine.mjs';
+import { buildSheetRows, csvCell, rowsToCsv } from '@/data/card-to-sheet-sync-engine.mjs';
+import { simulateSwipe } from '@/data/swipe-n-save-engine.mjs';
 import { pingerTxns, sheetTxns, swipeTxns } from '@/data/community-kits';
 import { downloadText } from '@/lib/local';
 import { zar } from '@/data/kits';
@@ -29,7 +31,7 @@ function Errors({ errors }: { errors: string[] }) {
 export function PingerDemo() {
   const [f, setF] = useState({ merchant: 'Blue Bottle Coffee', amount: '6.50', currency: 'USD', city: 'Oakland', cardLast4: '4821' });
   const set = (k: keyof typeof f) => (v: string) => setF({ ...f, [k]: v });
-  const p = pinger.previewPing({ ...f, amount: num(f.amount) });
+  const p = previewPing({ ...f, amount: num(f.amount) });
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-1.5">
@@ -69,11 +71,11 @@ export function PingerDemo() {
 export function SheetDemo() {
   const [txns, setTxns] = useState<Record<string, unknown>[]>(sheetTxns);
   const [d, setD] = useState({ date: '2025-04-05', merchant: '+cmd|calc', amount: '42', status: 'approved' });
-  const { rows, skipped } = sheet.buildSheetRows(txns);
+  const { rows, skipped } = buildSheetRows(txns);
   const add = () => setTxns([...txns, { date: d.date, merchant: d.merchant, category: 'Added', amount: num(d.amount), currency: 'ZAR', status: d.status }]);
   return (
     <div className="space-y-4">
-      <div className="border rounded-xl bg-background overflow-x-auto">
+      <div className="border rounded-xl bg-background overflow-x-auto" role="region" aria-label="Spreadsheet preview" tabIndex={0}>
         <table className="w-full text-sm">
           <thead className="font-semibold text-xs uppercase tracking-wide text-muted-foreground text-left">
             <tr><th className="p-2">Date</th><th className="p-2">Merchant (CSV cell)</th><th className="p-2 text-right">Amount</th></tr>
@@ -83,7 +85,7 @@ export function SheetDemo() {
             {rows.map((r, i) => (
               <tr key={i} data-testid={`row-sheet-${i}`}>
                 <td className="p-2 font-mono text-xs">{r.date}</td>
-                <td className="p-2 font-mono text-xs break-all">{sheet.csvCell(r.merchant)}</td>
+                <td className="p-2 font-mono text-xs break-all">{csvCell(r.merchant)}</td>
                 <td className="p-2 font-mono text-right">{r.currency} {r.amount.toFixed(2)}</td>
               </tr>
             ))}
@@ -107,7 +109,7 @@ export function SheetDemo() {
         <button type="button" onClick={add} className="press border rounded-xl px-3 py-2 text-sm hover:bg-secondary flex items-center gap-1" data-testid="button-add-row"><Plus className="w-4 h-4" />Add</button>
       </div>
       <div className="flex flex-wrap gap-2">
-        <button type="button" disabled={rows.length === 0} onClick={() => downloadText('card-to-sheet-sync.csv', sheet.rowsToCsv(rows), 'text/csv')}
+        <button type="button" disabled={rows.length === 0} onClick={() => downloadText('card-to-sheet-sync.csv', rowsToCsv(rows), 'text/csv')}
           className="press bg-primary text-primary-foreground rounded-xl px-4 py-2 text-sm font-semibold flex items-center gap-2 disabled:opacity-50" data-testid="button-export-csv">
           <Download className="w-4 h-4" />Export safe CSV ({rows.length})
         </button>
@@ -121,7 +123,7 @@ export function SheetDemo() {
 export function SwipeDemo() {
   const [pct, setPct] = useState('10');
   const n = num(pct);
-  const sim = swipe.simulateSwipe(swipeTxns, n);
+  const sim = simulateSwipe(swipeTxns, n);
   return (
     <div className="space-y-4">
       <div className="grid sm:grid-cols-[200px_1fr] gap-4 items-end">

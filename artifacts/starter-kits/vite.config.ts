@@ -4,6 +4,7 @@ import tailwindcss from '@tailwindcss/vite';
 import { defineConfig, type UserConfig } from 'vite';
 import { staticRoutes } from './build/static-routes';
 import { socialPreview } from './build/social-preview';
+import { projectStatusPlugin } from './src/project-status-plugin.ts';
 
 export default defineConfig(async ({ command }): Promise<UserConfig> => {
   // Static builds need no listening port. Development defaults to 5173; PORT overrides it.
@@ -22,6 +23,7 @@ export default defineConfig(async ({ command }): Promise<UserConfig> => {
   plugins: [
     react(),
     tailwindcss(),
+    projectStatusPlugin(),
     staticRoutes(),
     socialPreview(basePath, process.env.PUBLIC_SITE_URL),
   ],

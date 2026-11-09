@@ -1,5 +1,5 @@
-import type { Kit } from './kits';
-import { pingerLogic, sheetLogic, swipeLogic } from './community-logic';
+import type { Kit } from './kits.ts';
+import { cardToSheetSyncEngineSource, paymentPingerEngineSource, swipeNSaveEngineSource } from './kit-engine-sources.ts';
 
 export const DIRECTORY_URL = 'https://github.com/Investec-Developer-Community/Community-Projects';
 
@@ -59,7 +59,7 @@ const pingerScript = `// Payment Pinger mock starter (Launchpad adaptation)
 ${comment(mit('2024 Roberto Aldera'))}
 //
 // Launchpad modifications: rewritten as a local, offline preview with input validation.
-${pingerLogic}
+${paymentPingerEngineSource}
 ${runnerHead('payment-pinger-mock-data.json')}
 if (!Array.isArray(data.transactions)) { console.error('transactions must be an array'); process.exit(1); }
 
@@ -94,7 +94,7 @@ const sheetScript = `// Card-To-Sheet-Sync mock starter (Launchpad independent m
 // No network, no credentials, no Sheets or Make.
 // Run: node card-to-sheet-sync.mjs [mock-data.json] [out.csv]
 import { writeFileSync } from 'node:fs';
-${sheetLogic}
+${cardToSheetSyncEngineSource}
 ${runnerHead('card-to-sheet-sync-mock-data.json')}
 const out = process.argv[3] || './card-to-sheet-sync.csv';
 let result;
@@ -123,18 +123,48 @@ const swipeScript = `// Swipe n Save mock starter (Launchpad adaptation)
 // Upstream runs in the card code IDE and transfers a percentage of each purchase to savings,
 // needing accounts and transfers OAuth scopes. THIS MOCK only calculates: no credentials,
 // no transfers, no network. ATM withdrawals (MCC 6011) are excluded, as upstream.
-// Run: node swipe-n-save.mjs [mock-data.json] [percent 1-10000]
+// Run: node swipe-n-save.mjs [mock-data.json] [percent]
+// Enter ordinary percentage values (5 means 5%). The upstream README advertises
+// the numeric range 1–10,000; upstream code does not validate that setting.
 //
 // The original work is licensed as follows; this notice must be kept:
 //
 ${comment(mit('2024 Peter Smythe'))}
 //
 // Launchpad modifications: rewritten as a local, offline simulation with input validation.
-${swipeLogic}
+${swipeNSaveEngineSource}
 ${runnerHead('swipe-n-save-mock-data.json')}
-const pct = process.argv[3] !== undefined ? Number(process.argv[3]) : data.percent;
+function parsePercentArgument(raw) {
+  const input = raw.trim();
+  if (!input) return { ok: false, error: 'percent must be a numeric value; enter 5 for 5%' };
+  if (/^[+-]?(?:Infinity|NaN)$/i.test(input)) {
+    return { ok: false, error: 'percent must be finite; enter a number such as 5 for 5%' };
+  }
+  if (!/^[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:e[+-]?\\d+)?$/i.test(input)) {
+    return { ok: false, error: 'percent must be a numeric value; enter 5 for 5%' };
+  }
+  const value = Number(input);
+  if (!Number.isFinite(value)) {
+    return { ok: false, error: 'percent must be finite; enter a number such as 5 for 5%' };
+  }
+  return { ok: true, value };
+}
+let pct = data.percent;
+if (process.argv[3] !== undefined) {
+  const parsed = parsePercentArgument(process.argv[3]);
+  if (!parsed.ok) { console.error('INVALID: ' + parsed.error); process.exit(1); }
+  pct = parsed.value;
+}
 const sim = simulateSwipe(data.transactions, pct);
-if (!sim.ok) { console.error('INVALID: ' + sim.error); process.exit(1); }
+if (!sim.ok) {
+  const error = sim.error === 'percent must be a number'
+    ? 'percent must be a numeric JSON value (5 means 5%)'
+    : sim.error === 'percent must be between 1 and 10000'
+      ? 'percent must be within the upstream README-advertised numeric range 1–10,000 (5 means 5%)'
+      : sim.error;
+  console.error('INVALID: ' + error);
+  process.exit(1);
+}
 
 console.log('MOCK SIMULATION at ' + pct + '% - no money moves.');
 for (const r of sim.results) {
@@ -181,8 +211,8 @@ export const communityKits: Kit[] = [
     script: pingerScript,
     mockData: { note: 'Fictional transactions. The last row is intentionally invalid.', transactions: pingerTxns },
     setup: [
-      { title: 'Check Node', body: 'Node 18 or newer. Built-in modules only.', code: 'node --version' },
-      { title: 'Make a folder', body: 'Put the script and mock JSON together.', code: 'mkdir payment-pinger && cd payment-pinger' },
+      { title: 'Check Node', body: 'Requires Node.js 20.12 or newer. Built-in modules only.', code: 'node --version' },
+      { title: 'Extract the starter', body: 'Download the ZIP, extract it, then cd payment-pinger.' },
       { title: 'Preview pings', body: 'Prints a Telegram-style preview per row and an alert preview for non-ZAR rows. The invalid row is reported and the exit code is 1.', code: 'node payment-pinger.mjs ./payment-pinger-mock-data.json' },
       { title: 'Experiment', body: 'Change a currency to GBP or break an amount and rerun.' },
       { title: 'Read upstream', body: 'Read the original README for how Telegram bot tokens and the Canarytoken are configured. Never paste real tokens into this mock.' },
@@ -236,8 +266,8 @@ export const communityKits: Kit[] = [
     script: sheetScript,
     mockData: { note: 'Fictional transactions, including a formula-injection row and an invalid date.', transactions: sheetTxns },
     setup: [
-      { title: 'Check Node', body: 'Node 18 or newer. Built-in modules only.', code: 'node --version' },
-      { title: 'Make a folder', body: 'Put the script and mock JSON together.', code: 'mkdir card-to-sheet-sync && cd card-to-sheet-sync' },
+      { title: 'Check Node', body: 'Requires Node.js 20.12 or newer. Built-in modules only.', code: 'node --version' },
+      { title: 'Extract the starter', body: 'Download the ZIP, extract it, then cd card-to-sheet-sync.' },
       { title: 'Build rows', body: 'Approved, valid rows are written to a CSV; declined and invalid rows are skipped with reasons.', code: 'node card-to-sheet-sync.mjs ./card-to-sheet-sync-mock-data.json out.csv' },
       { title: 'Open the CSV', body: 'Open out.csv in a spreadsheet. The HYPERLINK row shows as text, prefixed with an apostrophe, not as a live formula.' },
       { title: 'Read upstream', body: 'Read the original README for the Make scenario. Keep webhook URLs out of code and version control.' },
@@ -263,7 +293,7 @@ export const communityKits: Kit[] = [
     name: "Swipe 'n Save",
     tagline: 'Simulate saving a percentage of every swipe, skipping ATMs.',
     summary:
-      'Launchpad mock adaptation of a community card-code project that transfers a percentage of each purchase into savings. Here you set a percentage from 1 to 10000 and see would-be savings; ATM withdrawals (MCC 6011) are excluded and no money moves.',
+      'Launchpad mock adaptation of a community card-code project that transfers a percentage of each purchase into savings. Enter ordinary percentage values (5 means 5%); this mock enforces the 1–10,000 numeric range advertised in the upstream README, which upstream code does not validate. ATM withdrawals (MCC 6011) are excluded and no money moves.',
     category: 'Savings',
     language: 'JavaScript',
     difficulty: 'Intermediate',
@@ -291,15 +321,15 @@ export const communityKits: Kit[] = [
     script: swipeScript,
     mockData: { note: 'Fictional purchases. MCC 6011 is an ATM withdrawal and is excluded.', percent: 10, transactions: swipeTxns },
     setup: [
-      { title: 'Check Node', body: 'Node 18 or newer. Built-in modules only.', code: 'node --version' },
-      { title: 'Make a folder', body: 'Put the script and mock JSON together.', code: 'mkdir swipe-n-save && cd swipe-n-save' },
+      { title: 'Check Node', body: 'Requires Node.js 20.12 or newer. Built-in modules only.', code: 'node --version' },
+      { title: 'Extract the starter', body: 'Download the ZIP, extract it, then cd swipe-n-save.' },
       { title: 'Simulate', body: 'Uses the percent in the JSON (10%).', code: 'node swipe-n-save.mjs ./swipe-n-save-mock-data.json' },
-      { title: 'Change the percent', body: 'Pass 1 to 10000 as the second argument. Try 0 or 20000 to see validation fail.', code: 'node swipe-n-save.mjs ./swipe-n-save-mock-data.json 250' },
+      { title: 'Change the percent', body: 'Pass a percentage value as the second argument (5 means 5%). The mock enforces the 1–10,000 numeric range advertised in the upstream README; try 0 or 10001 to see validation fail.', code: 'node swipe-n-save.mjs ./swipe-n-save-mock-data.json 5' },
       { title: 'Read upstream', body: 'Upstream needs real OAuth scopes for accounts and transfers. Keep credentials out of this folder.' },
     ],
     limitations: [
       'Moves no money. Real transfers need OAuth scopes, account IDs, idempotency and failure handling.',
-      'High percentages (up to 10000%) can drain an account quickly in the real project; review carefully.',
+      'The 1–10,000 range is advertised in the upstream README; its code does not validate the setting. This mock enforces that documented range.',
       'Only MCC 6011 is excluded, mirroring upstream. Other cash-like codes are not.',
       'Upstream was reviewed from its README only, not executed or certified compatible.',
     ],

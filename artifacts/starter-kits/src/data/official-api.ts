@@ -5,29 +5,55 @@ export const officialDocs = {
   card: { label: 'Card API', url: 'https://developer.investec.com/api-reference/SA%20Card%20Code' },
   auth: { label: 'Authorisation API (OAuth)', url: 'https://developer.investec.com/api-reference/SA%20Open%20API%20-%20Authorization' },
 };
-export const authNote = 'Real API access uses OAuth: the client-credentials flow requires client_id, client_secret and x-api-key, then a bearer token. The Card API quickstart requires the cards scope; account reads require accounts. Third-party access uses a separate approved 3-legged OAuth flow. None of the Launchpad downloads authenticates or requires credentials.';
-const balanceNote = 'The balance response uses data.currentBalance, availableBalance and currency—not our transactional.balance or loan.balance. These are distinct balances, not interchangeable spendable amounts. The official API also provides GET /za/pb/v1/accounts/{accountId}/pending-transactions; our single pendingAmount is a teaching simplification, not a field from that response.';
-const transferNote = 'The current documented transfer operation is POST /za/pb/v1/accounts/{accountId}/transfermultiple. Its transferList entries contain beneficiaryAccountId, amount as a string, myReference and theirReference; profileId is optional. Our calculator is not a transfer request and does not handle authorisation requirements or transfer outcomes. The historical project prerequisites do not establish current endpoint permissions: confirm them in the portal before integration.';
-const cardNote = 'Our amount is in major currency units (R 100 means 100 rand). The Card API simulation request uses centsAmount as a string (for example "10000"), currencyCode, merchantCode as a number, merchantName and merchantCity. Logged runtime examples use numeric centsAmount and nested merchant.category.code; simulation request fields are not the runtime event schema. Do not pass this mock JSON straight to either.';
-const eventNote = 'Official code examples use beforeTransaction(authorization) during authorisation with a limited execution time, and afterTransaction(transaction) after a transaction. Our local scripts run neither hook. Our approved/declined labels are local teaching values, not proof of settlement or the official event contract.';
+export const officialSandboxGuide = { label: 'Official sandbox guide', url: 'https://developer.investec.com/individuals#ind-howto-sandbox' };
+export const officialNextStepNote = 'For optional next steps, use the official Investec resources below. Launchpad examples use fictional data and do not connect to a bank.';
 export const accountKitSlugs = ['interest-maximiser', 'spend-explorer', 'cashflow-runway', 'recurring-payment-detective', 'who-paid'];
+const accountSampleNotes = [
+  'The approved Private Bank example uses data.transactions with type CREDIT/DEBIT and status POSTED/PENDING. amount is in monetary units of its currency: in a ZAR example, 123.45 means R123.45. Kit *Minor and signed amounts are locally derived from amount and type, not API fields; the approved example shows positive amounts for both types and does not define raw sign semantics.',
+  'The documented transaction query names are fromDate, toDate, transactionType and includePending. The reviewed baseline does not specify date-boundary inclusivity or page-navigation behavior; it documents meta.totalPages and lists no page query parameter.',
+  'Category labels are local derived fields, not account API fields. Who Paid? compares fictional invoice references with transaction descriptions as a local heuristic; the approved transaction schema has no reference property.',
+];
+const cardSampleNotes = [
+  'The documented card simulation request includes simulationcode, string centsAmount, currencyCode, numeric merchantCode, merchantName, merchantCity and countryCode. The example uses centsAmount: "10000" for R100; this REST request is not the runtime hook argument.',
+  'The example’s category label is assigned locally. merchant.category.code (a string) is a documented field of the authorization logged in the official /code/execute example; the docs do not establish that a local category or merchantCode determines its value.',
+  'Documented: beforeTransaction returns true to approve or false to decline, and the hook argument fields shown in the official simulation log. This guidance does not infer a complete runtime event schema, afterDecline argument fields, non-boolean return or timeout behavior, or configuration mechanics.',
+];
+export function sampleShapeGuidance(slug?: string) {
+  if (!slug) return [...accountSampleNotes, ...cardSampleNotes];
+  return accountKitSlugs.includes(slug)
+    ? [...accountSampleNotes]
+    : [...cardSampleNotes];
+}
+const balanceNote = 'The balance fixture uses the documented data.currentBalance, availableBalance and currency fields. These balances are distinct and are not interchangeable spendable amounts. The official API also provides GET /za/pb/v1/accounts/{accountId}/pending-transactions; the kit derives a held-back estimate from those pending debit rows, not from a single pendingAmount field.';
+const transferNote = 'The documented transfer operation is POST /za/pb/v1/accounts/{accountId}/transfermultiple. Its transferList entries contain beneficiaryAccountId, amount as a string, myReference and theirReference; profileId is optional. These examples only calculate a local estimate and do not create or execute a transfer request.';
+const eventNote = 'The official examples describe beforeTransaction(authorization) during authorisation and afterTransaction(transaction) after a transaction. Local labels do not establish settlement or a complete runtime event contract.';
 export function apiAlignment(slug: string) {
   const bankOnly = accountKitSlugs.includes(slug);
   const docs = bankOnly ? [officialDocs.bank, officialDocs.auth] : slug === 'swipe-n-save'
     ? [officialDocs.card, officialDocs.bank, officialDocs.auth] : [officialDocs.card, officialDocs.auth];
   const notes = slug === 'interest-maximiser' ? [balanceNote, transferNote]
-    : slug === 'spend-explorer' ? [
-      'Official account transactions are under data.transactions with status POSTED/PENDING and type CREDIT/DEBIT. Our lowercase posted/pending, date and hand-assigned category are local fields. Do not infer debit/credit direction from our positive spending amounts.',
-      'The account schema describes amount as monetary units in the account currency. This is not the Card API centsAmount convention. Pending transactions also have a separate endpoint; our sample list is not a complete reconciliation model.',
-    ] : ['cashflow-runway', 'recurring-payment-detective', 'who-paid'].includes(slug) ? [
-      'Private Bank reference rechecked 2026-11-04 (portal documentation, not live calls). Account transactions are returned in data.transactions. POSTED/PENDING and CREDIT/DEBIT describe status and direction; these scripts still use a simplified teaching schema, not the response contract.',
-      'These examples require explicit currency and integer amountMinor values. Official account examples express amounts in major currency units, so a real adapter must validate currency and convert decimal amounts exactly. Do not confuse these with the Card API centsAmount field.',
-      'Our scheduled events, merchant labels, invoice references and due dates are fictional application inputs. They are not guaranteed bank fields. No future bill, invoice debt or forecast can be established from the bank balance alone. Pending rows are not treated as settled payments.',
-    ] : [cardNote, eventNote, ...(slug === 'swipe-n-save' ? [transferNote, 'The mock mcc string and ATM exclusion 6011 reflect the community idea. They do not model all cash-like transactions, reversals, retries or available funds.'] : [])];
+    : bankOnly ? []
+      : [eventNote, ...(slug === 'swipe-n-save' ? [transferNote, 'The mock MCC string and ATM exclusion 6011 reflect the community idea. They do not model all cash-like transactions, reversals, retries or available funds.'] : [])];
   return { docs, notes };
+}
+export function apiReadmeGuidance(slug: string) {
+  const { docs, notes } = apiAlignment(slug);
+  return [
+    '## Illustrative API notes',
+    'These notes describe sample shapes, not live responses or a compatibility guarantee.',
+    ...sampleShapeGuidance(slug).map(note => `- ${note}`),
+    ...notes.map(note => `- ${note}`),
+    '',
+    '### Official next steps',
+    officialNextStepNote,
+    ...docs.map(doc => `- [${doc.label}](${doc.url})`),
+    `- [${officialSandboxGuide.label}](${officialSandboxGuide.url})`,
+  ].join('\n');
 }
 export function apiDownloadNote(slug: string) {
   const { docs, notes } = apiAlignment(slug);
   return ['Launchpad API guidance reviewed ' + API_REVIEW_DATE + '; offline teaching schema, not a live API payload.',
-    ...docs.map(d => d.label + ': ' + d.url), ...notes, authNote].map(line => '// ' + line).join('\n') + '\n';
+    ...docs.map(d => d.label + ': ' + d.url),
+    ...sampleShapeGuidance(slug), ...notes, officialNextStepNote,
+    officialSandboxGuide.label + ': ' + officialSandboxGuide.url].map(line => '// ' + line).join('\n') + '\n';
 }

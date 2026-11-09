@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { RotateCcw } from 'lucide-react';
 import { forecast, detectRecurring, reconcile } from '@/data/learning-engines.mjs';
+import { decimalToMinor } from '@/data/sample-helpers.mjs';
 import { runwayFixture, recurringFixture, reconciliationFixture } from '@/data/learning-fixtures';
 import { cn } from '@/lib/utils';
 
@@ -68,7 +69,12 @@ const majorStr = (minor: number) => (minor / 100).toFixed(2);
 /* ---------------- Runway ---------------- */
 export function RunwayDemo() {
   const f = runwayFixture;
-  const init = { start: majorStr(f.startingMinor), daily: majorStr(f.dailySpendMinor), purchase: majorStr(f.purchaseMinor), date: f.purchaseDate };
+  const init = {
+    start: majorStr(decimalToMinor(f.balance.data.currentBalance)),
+    daily: majorStr(decimalToMinor(f.dailySpend)),
+    purchase: majorStr(decimalToMinor(f.purchase.amount)),
+    date: f.purchase.date,
+  };
   const [s, setS] = useState(init);
   const set = (k: keyof typeof init) => (v: string) => setS((p) => ({ ...p, [k]: v }));
   const start = toMinor(s.start, { allowZero: true });
@@ -77,8 +83,14 @@ export function RunwayDemo() {
   const lastDay = new Date(Date.parse(`${f.startDate}T00:00:00Z`) + 29 * 86400000).toISOString().slice(0, 10);
   const dateErr = !s.date ? 'Required' : s.date < f.startDate || s.date > lastDay ? `Pick a date from ${f.startDate} to ${lastDay}` : undefined;
   const ok = start.minor !== undefined && daily.minor !== undefined && purchase.minor !== undefined && !dateErr;
-  const base = ok ? run(() => forecast({ ...f, startingMinor: start.minor!, dailySpendMinor: daily.minor!, purchaseMinor: 0, purchaseDate: s.date })) : null;
-  const scen = ok ? run(() => forecast({ ...f, startingMinor: start.minor!, dailySpendMinor: daily.minor!, purchaseMinor: purchase.minor!, purchaseDate: s.date })) : null;
+  const withInputs = (purchaseAmount: number) => ({
+    ...f,
+    balance: { ...f.balance, data: { ...f.balance.data, currentBalance: start.minor! / 100 } },
+    dailySpend: daily.minor! / 100,
+    purchase: { amount: purchaseAmount / 100, date: s.date },
+  });
+  const base = ok ? run(() => forecast(withInputs(0))) : null;
+  const scen = ok ? run(() => forecast(withInputs(purchase.minor!))) : null;
   return (
     <div className="space-y-4">
       <div className="grid sm:grid-cols-2 gap-3">
@@ -88,7 +100,7 @@ export function RunwayDemo() {
         <Field id="runway-date" type="date" label="Purchase date" value={s.date} onChange={set('date')} error={dateErr} />
       </div>
       <div className="text-xs text-muted-foreground">
-        Fixed events: {f.events.map((e) => `${e.id} ${e.kind === 'income' ? '+' : '-'}${fmt(e.amountMinor)} on ${e.date}`).join('; ')}.
+        Fixed events: {f.events.map((e) => `${e.id} ${e.kind === 'income' ? '+' : '-'}${fmt(decimalToMinor(e.amount))} on ${e.date}`).join('; ')}.
       </div>
       {!ok ? <p className="text-sm text-destructive" data-testid="text-demo-invalid">Fix the highlighted fields to see a forecast.</p>
         : base?.err || scen?.err ? <EngineError msg={(base?.err ?? scen?.err)!} />
@@ -108,7 +120,7 @@ export function RunwayDemo() {
             </div>
             <details className="border rounded-xl bg-background">
               <summary className="cursor-pointer px-3 py-2 text-sm font-medium" data-testid="toggle-runway-days">Show all 30 days (with purchase)</summary>
-              <div className="overflow-x-auto max-h-80 overflow-y-auto">
+              <div className="overflow-x-auto max-h-80 overflow-y-auto" role="region" aria-label="30-day forecast results" tabIndex={0}>
                 <table className="w-full text-xs font-mono">
                   <thead className="text-muted-foreground sticky top-0 bg-background"><tr>{['Date', 'Opening', 'Income', 'Bills', 'Spend', 'Purchase', 'Closing'].map((h) => <th key={h} scope="col" className="text-left px-2 py-1 font-semibold">{h}</th>)}</tr></thead>
                   <tbody>
@@ -137,22 +149,28 @@ export function RunwayDemo() {
 /* ---------------- Recurring ---------------- */
 export function RecurringDemo() {
   const f = recurringFixture;
-  const lastGym = f.transactions.find((t) => t.id === 'gym-2')!;
-  const init = { gym: majorStr(lastGym.amountMinor), excludePending: false };
+  const lastGym = f.transactions.data.transactions.find((t) => t.uuid === 'gym-2')!;
+  const init = { gym: majorStr(decimalToMinor(lastGym.amount)), excludePending: false };
   const [s, setS] = useState(init);
   const gym = toMinor(s.gym);
   const res = gym.minor !== undefined ? run(() => detectRecurring({
     ...f,
-    transactions: f.transactions
-      .filter((t) => !(s.excludePending && t.status === 'PENDING'))
-      .map((t) => (t.id === 'gym-2' ? { ...t, amountMinor: gym.minor! } : t)),
+    transactions: {
+      ...f.transactions,
+      data: {
+        ...f.transactions.data,
+        transactions: f.transactions.data.transactions
+          .filter((t) => !(s.excludePending && t.status === 'PENDING'))
+          .map((t) => (t.uuid === 'gym-2' ? { ...t, amount: gym.minor! / 100 } : t)),
+      },
+    },
   })) : null;
   const likely = res?.v?.results.filter((r) => r.likely) ?? [];
   const not = res?.v?.results.filter((r) => !r.likely) ?? [];
   return (
     <div className="space-y-4">
       <div className="grid sm:grid-cols-2 gap-3 items-start">
-        <Field id="recurring-gym" label={`Last Demo Gym payment, ${lastGym.date} (R)`} value={s.gym} onChange={(v) => setS((p) => ({ ...p, gym: v }))} error={gym.err} hint="Try 650.00 to break the 10% stability rule" />
+        <Field id="recurring-gym" label={`Last Demo Gym payment, ${lastGym.postingDate} (R)`} value={s.gym} onChange={(v) => setS((p) => ({ ...p, gym: v }))} error={gym.err} hint="Try 650.00 to break the 10% stability rule" />
         <label className="flex items-center gap-2 text-sm sm:mt-7">
           <input type="checkbox" checked={s.excludePending} onChange={(e) => setS((p) => ({ ...p, excludePending: e.target.checked }))} className="w-4 h-4 accent-[hsl(var(--primary))]" data-testid="checkbox-exclude-pending" />
           Remove pending rows before detection
@@ -166,7 +184,7 @@ export function RecurringDemo() {
             <div className="grid md:grid-cols-2 gap-4">
               {([['Likely recurring', likely, 'ok'], ['Not likely recurring', not, 'muted']] as const).map(([title, list, tone]) => (
                 <section key={title} aria-label={title}>
-                  <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">{title} ({list.length})</h4>
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">{title} ({list.length})</h3>
                   {list.length === 0 ? <p className="text-sm text-muted-foreground border border-dashed rounded-xl p-3">None in this scenario.</p> : (
                     <ul className="space-y-2">
                       {list.map((r) => (
@@ -194,22 +212,31 @@ export function RecurringDemo() {
 /* ---------------- Reconciliation ---------------- */
 export function ReconciliationDemo() {
   const f = reconciliationFixture;
-  const p2 = f.payments.find((p) => p.id === 'pay-2')!;
-  const p3 = f.payments.find((p) => p.id === 'pay-3')!;
-  const init = { amt: majorStr(p2.amountMinor), ref: p3.reference };
+  const p2 = f.transactions.data.transactions.find((p) => p.uuid === 'pay-2')!;
+  const p3 = f.transactions.data.transactions.find((p) => p.uuid === 'pay-3')!;
+  const init = { amt: majorStr(decimalToMinor(p2.amount)), ref: p3.description };
   const [s, setS] = useState(init);
   const amt = toMinor(s.amt);
   const refErr = s.ref.trim() === '' ? 'Required' : undefined;
   const ok = amt.minor !== undefined && !refErr;
   const res = ok ? run(() => reconcile({
     ...f,
-    payments: f.payments.map((p) => p.id === 'pay-2' ? { ...p, amountMinor: amt.minor! } : p.id === 'pay-3' ? { ...p, reference: s.ref } : p),
+    transactions: {
+      ...f.transactions,
+      data: {
+        ...f.transactions.data,
+        transactions: f.transactions.data.transactions.map((p) =>
+          p.uuid === 'pay-2' ? { ...p, amount: amt.minor! / 100 }
+            : p.uuid === 'pay-3' ? { ...p, description: s.ref }
+              : p),
+      },
+    },
   })) : null;
   const tone = { paid: 'ok', partial: 'warn', unpaid: 'bad' } as const;
   return (
     <div className="space-y-4">
       <div className="grid sm:grid-cols-2 gap-3">
-        <Field id="recon-pay2" label={`Payment ${p2.reference} amount (R)`} value={s.amt} onChange={(v) => setS((p) => ({ ...p, amt: v }))} error={amt.err} hint="Try 3000.00 to fully pay WEB-102" />
+        <Field id="recon-pay2" label={`Description ${p2.description} amount (R)`} value={s.amt} onChange={(v) => setS((p) => ({ ...p, amt: v }))} error={amt.err} hint="Try 3000.00 to fully pay WEB-102" />
         <label className="block text-sm" htmlFor="f-recon-ref">
           <span className="font-medium">Reference on the unknown payment</span>
           <input id="f-recon-ref" value={s.ref} onChange={(e) => setS((p) => ({ ...p, ref: e.target.value }))} aria-invalid={!!refErr}
@@ -222,7 +249,7 @@ export function ReconciliationDemo() {
         : res?.err ? <EngineError msg={res.err} />
         : res?.v && (
           <>
-            <div className="overflow-x-auto border rounded-xl bg-background">
+            <div className="overflow-x-auto border rounded-xl bg-background" role="region" aria-label="Invoice reconciliation results" tabIndex={0}>
               <table className="w-full text-sm">
                 <caption className="text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground px-3 pt-3">Invoices</caption>
                 <thead className="text-xs text-muted-foreground"><tr>{['Reference', 'Due', 'Amount', 'Paid', 'Outstanding', 'Status'].map((h) => <th key={h} scope="col" className="text-left px-3 py-2">{h}</th>)}</tr></thead>
@@ -241,12 +268,12 @@ export function ReconciliationDemo() {
               </table>
             </div>
             <section aria-label="Payments">
-              <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Payments</h4>
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Payments</h3>
               <ul className="space-y-2">
                 {res.v.payments.map((p) => (
                   <li key={p.id} className={cn('border rounded-xl p-3 bg-background text-sm', p.status === 'ambiguous' && 'border-accent', p.status === 'unmatched' && 'border-dashed')} data-testid={`payment-${p.id}`}>
                     <div className="flex justify-between gap-2 flex-wrap">
-                      <span className="font-mono">{p.reference} <span className="text-muted-foreground text-xs">{p.date}</span></span>
+                      <span className="font-mono">{p.description} <span className="text-muted-foreground text-xs">{p.date}</span></span>
                       <span className="flex items-center gap-2"><span className="font-mono">{fmt(p.amountMinor)}</span><Pill tone={p.status === 'matched' ? 'ok' : p.status === 'ambiguous' ? 'warn' : 'muted'}>{p.status}</Pill></span>
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">{p.reason}{p.invoiceId ? ` (${p.invoiceId})` : ''}</p>

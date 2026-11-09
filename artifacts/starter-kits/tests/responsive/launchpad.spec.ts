@@ -1,16 +1,21 @@
 import { test, expect } from '@playwright/test';
 import { fileURLToPath } from 'node:url';
 import { noHorizontalOverflow, ready, tabTo, visibleFocus } from './helpers';
+import { PROJECT_STATUS_TEXT } from '../../src/data/project-status';
 
 const sectionScreenshotStyle = fileURLToPath(new URL('./section-screenshot.css', import.meta.url));
 
-test('zebra footer remains readable and restrained', async ({ page }) => {
+test('project status footer remains readable and restrained', async ({ page }) => {
   await ready(page, '/');
-  const footer = page.locator('footer');
-  await footer.scrollIntoViewIfNeeded();
-  await expect(page.getByTestId('image-footer-zebra')).toBeVisible();
+  const status = page.getByTestId('project-status');
+  await expect(status).toHaveCount(1);
+  await status.scrollIntoViewIfNeeded();
+  await expect(status).toBeVisible();
+  await expect(status).toHaveText(PROJECT_STATUS_TEXT);
   await noHorizontalOverflow(page);
-  await expect(footer).toHaveScreenshot('zebra-footer.png');
+  await expect(status).toHaveScreenshot('project-status-footer.png', {
+    stylePath: sectionScreenshotStyle,
+  });
 });
 
 test('library shell, filters and keyboard focus', async ({ page }, info) => {

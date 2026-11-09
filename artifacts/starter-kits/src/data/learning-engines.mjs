@@ -1,11 +1,23 @@
 // Original Launchpad teaching algorithms. Fictional data only; no network or credentials.
-// All money is integer minor units. Date-only values are evaluated in UTC.
+// Bank inputs use documented envelopes; calculations use exact integer minor units.
+import { decimalToMinor, normalizeTransaction } from './sample-helpers.mjs';
 function requireValue(condition, message) {
   if (!condition) throw new Error(message);
 }
 function money(value, label, minimum = 0) {
   requireValue(Number.isSafeInteger(value) && value >= minimum, `${label} must be safe integer minor units, at least ${minimum}.`);
   return value;
+}
+function major(value, label, minimum = 0) {
+  let converted;
+  try { converted = decimalToMinor(value); }
+  catch (error) {
+    if (error instanceof RangeError && error.message.includes('safe integer')) {
+      throw new Error(`${label} exceeds the safe integer range.`);
+    }
+    throw new Error(`${label} must be a valid decimal amount.`);
+  }
+  return money(converted, label, minimum);
 }
 function addMoney(a, b) {
   const value = a + b;
@@ -40,19 +52,32 @@ function uniqueIds(rows, label) {
   }
 }
 
+function transactions(envelope, unit) {
+  requireValue(envelope?.data && Array.isArray(envelope.data.transactions), 'Transactions must use the official data.transactions envelope.');
+  return envelope.data.transactions.map((row, index) => normalizeTransaction(row, unit, index));
+}
+
+function validateBalance(balance, unit) {
+  requireValue(balance?.data && currency(balance.data.currency) === unit, 'Balance must use the official data envelope and match the requested currency.');
+}
+
 export function forecast(input) {
   const unit = currency(input.currency);
   const start = day(input.startDate);
-  let balance = money(input.startingMinor, 'Starting balance', -Number.MAX_SAFE_INTEGER);
-  const daily = money(input.dailySpendMinor, 'Daily spend');
-  const purchase = money(input.purchaseMinor, 'Purchase');
-  day(input.purchaseDate);
-  requireValue(input.purchaseDate >= input.startDate && input.purchaseDate <= iso(new Date(start.getTime() + 29 * 86400000)), 'Purchase date must fall within the 30-day forecast.');
+  const accountBalance = input.balance?.data;
+  validateBalance(input.balance, unit);
+  let balance = major(accountBalance.currentBalance, 'Starting balance', -Number.MAX_SAFE_INTEGER);
+  const daily = major(input.dailySpend, 'Daily spend');
+  const purchase = major(input.purchase?.amount, 'Purchase');
+  const purchaseDate = input.purchase?.date;
+  day(purchaseDate);
+  requireValue(purchaseDate >= input.startDate && purchaseDate <= iso(new Date(start.getTime() + 29 * 86400000)), 'Purchase date must fall within the 30-day forecast.');
+  transactions(input.transactions, unit);
   uniqueIds(input.events, 'event');
   for (const event of input.events) {
     sameCurrency(event, unit);
     day(event.date);
-    money(event.amountMinor, 'Event amount', 1);
+    major(event.amount, 'Event amount', 1);
     requireValue(['income', 'bill'].includes(event.kind), 'Event kind must be income or bill.');
   }
   const days = [];
@@ -61,10 +86,11 @@ export function forecast(input) {
     const openingMinor = balance;
     let incomeMinor = 0, billsMinor = 0;
     for (const event of input.events.filter(event => event.date === date)) {
-      if (event.kind === 'income') incomeMinor = addMoney(incomeMinor, event.amountMinor);
-      else billsMinor = addMoney(billsMinor, event.amountMinor);
+      const eventMinor = major(event.amount, 'Event amount', 1);
+      if (event.kind === 'income') incomeMinor = addMoney(incomeMinor, eventMinor);
+      else billsMinor = addMoney(billsMinor, eventMinor);
     }
-    const purchaseMinor = date === input.purchaseDate ? purchase : 0;
+    const purchaseMinor = date === purchaseDate ? purchase : 0;
     balance = addMoney(addMoney(addMoney(addMoney(balance, incomeMinor), -billsMinor), -daily), -purchaseMinor);
     days.push({ date, openingMinor, incomeMinor, billsMinor, dailySpendMinor: daily, purchaseMinor, closingMinor: balance });
   }
@@ -75,17 +101,19 @@ export function forecast(input) {
 
 export function detectRecurring(input) {
   const unit = currency(input.currency);
+  validateBalance(input.balance, unit);
   day(input.asOf);
-  uniqueIds(input.transactions, 'transaction');
+  const rowsFromApi = transactions(input.transactions, unit);
+  uniqueIds(rowsFromApi, 'transaction');
   const groups = new Map();
   let ignored = 0;
-  for (const transaction of input.transactions) {
+  for (const transaction of rowsFromApi) {
     sameCurrency(transaction, unit);
     day(transaction.date);
-    money(transaction.amountMinor, 'Transaction amount', 1);
+    money(Math.abs(transaction.amountMinor), 'Transaction amount', 1);
     requireValue(['POSTED', 'PENDING'].includes(transaction.status), 'Unknown transaction status.');
     requireValue(['CREDIT', 'DEBIT'].includes(transaction.type), 'Unknown transaction type.');
-    const merchant = text(transaction.merchant, 'Merchant');
+    const merchant = text(transaction.description, 'Description');
     if (transaction.status !== 'POSTED' || transaction.type !== 'DEBIT' || transaction.date > input.asOf) { ignored++; continue; }
     const list = groups.get(merchant) ?? [];
     list.push(transaction);
@@ -95,7 +123,7 @@ export function detectRecurring(input) {
   const monthEnd = d => d.getUTCDate() === new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
   for (const [merchant, unsorted] of groups) {
     const rows = [...unsorted].sort((a, b) => a.date.localeCompare(b.date));
-    const amounts = rows.map(row => row.amountMinor).sort((a, b) => a - b);
+    const amounts = rows.map(row => Math.abs(row.amountMinor)).sort((a, b) => a - b);
     const typicalMinor = amounts[Math.floor(amounts.length / 2)];
     const stable = amounts.every(amount => Math.abs(amount - typicalMinor) <= Math.floor(typicalMinor / 10));
     const cadence = rows.slice(1).every((row, i) => {
@@ -121,25 +149,26 @@ export function detectRecurring(input) {
 
 export function reconcile(input) {
   const unit = currency(input.currency);
+  validateBalance(input.balance, unit);
   day(input.asOf);
   uniqueIds(input.invoices, 'invoice');
-  uniqueIds(input.payments, 'payment');
+  const rowsFromApi = transactions(input.transactions, unit);
+  uniqueIds(rowsFromApi, 'payment');
   const invoices = input.invoices.map(invoice => {
     sameCurrency(invoice, unit);
     day(invoice.dueDate);
-    money(invoice.amountMinor, 'Invoice amount', 1);
-    return { ...invoice, reference: text(invoice.reference, 'Invoice reference'), paidMinor: 0 };
+    const amountMinor = major(invoice.amount, 'Invoice amount', 1);
+    return { ...invoice, amountMinor, reference: text(invoice.reference, 'Invoice reference'), paidMinor: 0 };
   });
   const payments = [];
-  for (const payment of input.payments) {
-    sameCurrency(payment, unit);
+  for (const payment of rowsFromApi) {
     day(payment.date);
-    money(payment.amountMinor, 'Payment amount', 1);
+    money(Math.abs(payment.amountMinor), 'Payment amount', 1);
     requireValue(['POSTED', 'PENDING'].includes(payment.status), 'Unknown payment status.');
     requireValue(['CREDIT', 'DEBIT'].includes(payment.type), 'Unknown payment type.');
-    const reference = text(payment.reference, 'Payment reference');
+    const description = text(payment.description, 'Payment description');
     let status = 'unmatched', reason = '', invoiceId = null;
-    const matches = invoices.filter(invoice => invoice.reference === reference);
+    const matches = invoices.filter(invoice => invoice.reference === description);
     if (payment.status !== 'POSTED' || payment.type !== 'CREDIT' || payment.date > input.asOf) {
       reason = 'Only posted incoming payments on or before the as-of date are eligible.';
     } else if (matches.length > 1) {
@@ -156,7 +185,7 @@ export function reconcile(input) {
         invoiceId = invoice.id;
       }
     }
-    payments.push({ ...payment, status, reason, invoiceId });
+    payments.push({ ...payment, description, status, reason, invoiceId });
   }
   return { currency: unit, payments, invoices: invoices.map(invoice => ({
     ...invoice, outstandingMinor: invoice.amountMinor - invoice.paidMinor,

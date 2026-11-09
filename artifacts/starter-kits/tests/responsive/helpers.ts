@@ -70,3 +70,19 @@ export async function visibleFocus(target: Locator) {
     return el.matches(':focus-visible') && (outlined || ring);
   }), 'Keyboard focus must have a visible outline or ring').toBe(true);
 }
+
+// Operates every visible control in a kit's in-browser demo once and returns how many were found.
+export async function operateDemo(page: Page) {
+  const controls = page.locator('section#try').locator('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled])');
+  const total = await controls.count();
+  for (let index = 0; index < total; index += 1) {
+    const control = controls.nth(index);
+    if (!(await control.isVisible()) || !(await control.isEnabled())) continue;
+    const kind = await control.evaluate(element => `${element.tagName}:${(element as HTMLInputElement).type}`);
+    if (kind.startsWith('BUTTON')) await control.click();
+    else if (kind.startsWith('SELECT')) await control.selectOption({ index: (await control.locator('option').count()) - 1 });
+    else if (/:(?:checkbox|radio)$/.test(kind)) await control.check();
+    else if (!/:(?:range|file|color|date)$/.test(kind)) await control.fill('7');
+  }
+  return total;
+}
